@@ -1,0 +1,23 @@
+# Btree library
+It was wrote in golang.
+
+## API
+NewBtree()/NewBtreeSize()
+create new btree
+
+btree.Insert(record, rst)
+insert a record, rst is a bool chan. if insert success, it return true
+
+btree.Update(record, rst)
+Update a record, rst is a bool chan. if update success, it return true
+
+btree.Delete(key, rst)
+Delete a record, rst is a bool chan. if delete success, it return true
+
+btree.Search(key, rst)
+Search a record, rst is a []byte chan. if find success, it return value
+
+## TODO
+1. add support data dump api
+2. test case/bugfix
+3. maybe support parallel btree
