@@ -3,7 +3,6 @@ package btree
 import (
 	"sync"
 	"bytes"
-	"fmt"
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -90,7 +89,6 @@ func (T *Btree) newleaf() int32 {
 	}
 	*T.info.LastLeaf ++
 	*T.info.LeafCount ++
-	//fmt.Println("tree leaf size", *T.info.LeafMax, "count ", *T.info.LeafCount,"Last ", *T.info.LastLeaf)
 	leaf := new(Leaf)
 	leaf.Id = proto.Int32(*T.info.LastLeaf)
 	leaf.Removed = proto.Bool(false)
@@ -103,11 +101,9 @@ func (T *Btree) newnode() int32 {
 	if *T.info.LastNode >= *T.info.NodeMax && len(T.nodes) < 1<<24 {
 		T.nodes = append(T.nodes[:*T.info.LastNode], append(make([]TreeNode, *T.info.NodeCount), T.nodes[*T.info.LastNode:]...)...)
 		*T.info.NodeMax = *T.info.NodeCount + *T.info.LastNode
-		fmt.Println("new size tree node")
 	}
 	*T.info.LastNode ++
 	*T.info.NodeCount ++
-	//fmt.Println("tree node size", *T.info.NodeMax, "count ", *T.info.NodeCount,"Last ", *T.info.LastNode)
 	node := new(Node)
 	node.Id = proto.Int32(*T.info.LastNode)
 	node.Removed = proto.Bool(false)
