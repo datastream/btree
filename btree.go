@@ -33,7 +33,7 @@ func NewBtree() *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, 1<<20) //26 -> 1G mem
 	tree.info = &BtreeMetaData{
-	Size: proto.Uint32(4),
+	Size: proto.Uint32(32),
 	LeafMax:  proto.Int32(NODEIDBASE-1),
 	NodeMax: proto.Int32(1<<19),
 	LeafCount: proto.Int32(0),
@@ -170,10 +170,10 @@ func (N *Node) search(key []byte, tree *Btree) []byte {
 func (L *Leaf) search(key []byte, tree *Btree) []byte {
 	L.RLock()
 	defer L.RUnlock()
-	for i := 0; i < len(L.Records); i++ {
-		//fmt.Println("key: ", string(L.Records[i].Key))
-		if bytes.Compare(L.Records[i].Key, key) == 0 {
-			return L.Records[i].Value
+	index := L.locate(key) - 1
+	if index >= 0 {
+		if bytes.Compare(L.Records[index].Key, key) == 0 {
+			return L.Records[index].Value
 		}
 	}
 	return nil
@@ -199,17 +199,16 @@ func (N *Node) delete(key []byte, tree *Btree) bool {
 func (L *Leaf) delete(key []byte, tree *Btree) bool {
 	L.Lock()
 	defer L.Unlock()
-	var i int
 	var deleted bool
-	for i = 0; i < len(L.Records); i++ {
-		if bytes.Compare(L.Records[i].Key, key) == 0 {
+	index := L.locate(key) -1
+	if index >= 0 {
+		if bytes.Compare(L.Records[index].Key, key) == 0 {
 			deleted = true
-			break
 		}
 	}
 	if deleted {
-		L.Records = append(L.Records[:i],L.Records[i+1:]...)
-		if i == 0 && len(L.Records) > 0 {
+		L.Records = append(L.Records[:index],L.Records[index+1:]...)
+		if index == 0 && len(L.Records) > 0 {
 			if tree.info.Root != L.Id {
 				replace(key, L.Records[0].Key, *L.Father, tree)
 			}
@@ -246,9 +245,10 @@ func (N *Node) update(record *RecordMetaData, tree *Btree) bool {
 func (L *Leaf) update(record *RecordMetaData, tree *Btree) bool {
 	L.Lock()
 	defer L.Unlock()
-	for i := 0; i < len(L.Records); i++ {
-		if bytes.Compare(L.Records[i].Key, record.Key) == 0 {
-			L.Records[i].Value = record.Value
+	index := L.locate(record.Key) - 1
+	if index >= 0 {
+		if bytes.Compare(L.Records[index].Key, record.Key) == 0 {
+			L.Records[index].Value = record.Value
 			return true
 		}
 	}
@@ -324,12 +324,12 @@ func (N *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btre
  * Replace key in node
  */
 func replace(oldkey []byte, newkey []byte, id int32, tree *Btree) {
-	var i int
 	node := get_node(id, tree)
 	if node != nil {
-		for i = 0; i < len(node.Keys); i++ {
-			if bytes.Compare(node.Keys[i], oldkey) == 0 {
-				node.Keys[i] = newkey
+		index := node.locate(oldkey) - 1
+		if index >= 0 {
+			if bytes.Compare(node.Keys[index], oldkey) == 0 {
+				node.Keys[index] = newkey
 				return
 			}
 		}
@@ -468,19 +468,33 @@ func get_leaf(id int32, tree *Btree) (*Leaf) {
 	return nil
 }
 func (N *Node) locate(key []byte) (int) {
-	var i int
-	for i = 0 ; i < len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], key) > 0 {
+	i := 0
+	size := len(N.Keys)
+	for {
+		mid := (i+size)/2
+		if i == size {
 			break
+		}
+		if bytes.Compare(N.Keys[mid], key) <= 0 {
+			i = mid + 1
+		} else {
+			size = mid
 		}
 	}
 	return i
 }
 func (L *Leaf) locate(key []byte) (int) {
-	var i int
-	for i = 0 ; i < len(L.Records); i++ {
-		if bytes.Compare(L.Records[i].Key, key) > 0 {
+	i := 0
+	size := len(L.Records)
+	for {
+		mid := (i+size)/2
+		if i == size {
 			break
+		}
+		if bytes.Compare(L.Records[mid].Key, key) <= 0 {
+			i = mid + 1
+		} else {
+			size = mid
 		}
 	}
 	return i
