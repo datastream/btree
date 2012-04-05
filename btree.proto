@@ -1,0 +1,34 @@
+message BtreeMetaData
+{
+  optional int32 root = 1;
+  optional int32 first_leaf = 2;
+  optional int32 last_leaf = 3;
+  optional int32 last_node = 4;
+  optional int32 leaf_count = 5;
+  optional int32 node_count = 6;
+  optional int32 leaf_max = 7;
+  optional int32 node_max = 8;
+  optional uint32 size = 9;
+}
+message NodeMetaData
+{
+  optional int32 id = 1;
+  optional int32 father = 2;
+  repeated int32 childrens = 3;
+  repeated bytes keys = 4;
+  optional bool removed = 5;
+}
+message LeafMetaData
+{
+  optional int32 id = 1;
+  optional int32 father = 2;
+  optional int32 next = 3;
+  optional int32 prev = 4;
+  repeated RecordMetaData records = 8;
+  optional bool removed = 5;
+}
+message RecordMetaData
+{
+  optional bytes key = 1;
+  optional bytes value = 2;
+}
