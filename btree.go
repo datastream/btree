@@ -12,15 +12,15 @@ const  NODEIDBASE = 1<<18
 type Btree struct {
 	info *BtreeMetaData
 	nodes []TreeNode
-	sync.Mutex
+	sync.RWMutex
 }
 type  Leaf struct {
 	LeafMetaData
-	sync.Mutex
+	sync.RWMutex
 }
 type Node struct {
 	NodeMetaData
-	sync.Mutex
+	sync.RWMutex
 }
 type TreeNode interface {
 	insert(record *RecordMetaData, tree *Btree) bool
@@ -28,6 +28,7 @@ type TreeNode interface {
 	update(recode *RecordMetaData, tree *Btree) bool
 	search(key []byte, tree *Btree) []byte
 }
+
 func NewBtree() *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, 1<<20) //26 -> 1G mem
@@ -44,6 +45,7 @@ func NewBtree() *Btree {
 	tree.info.Root =  proto.Int32(tree.newleaf())
 	return tree
 }
+
 func NewBtreeSize(size uint32) *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, 1<<20)
@@ -60,6 +62,7 @@ func NewBtreeSize(size uint32) *Btree {
 	tree.info.Root =  proto.Int32(tree.newleaf())
 	return tree
 }
+
 func (T *Btree) Insert(record *RecordMetaData, rst chan bool) {
 	rst <- insert(T.nodes[*T.info.Root], record, T)
 }
@@ -127,29 +130,19 @@ func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) bool {
 func (N *Node) insert(record *RecordMetaData, tree *Btree) bool {
 	N.Lock()
 	defer N.Unlock()
-	var i int
-	for i = 0; i < len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], record.Key) > 0 {
-			break
-		}
-	}
-	return insert(tree.nodes[N.Childrens[i]], record, tree)
+	index := N.locate(record.Key)
+	return insert(tree.nodes[N.Childrens[index]], record, tree)
 }
 func (L *Leaf) insert(record *RecordMetaData, tree *Btree) bool {
 	L.Lock()
 	defer L.Unlock()
-	var i int
-	for i = 0; i < len(L.Records); i++ {
-		if bytes.Compare(L.Records[i].Key, record.Key) > 0 {
-			break
-		}
-	}
-	if i > 0 {
-		if bytes.Compare(L.Records[i-1].Key, record.Key) == 0 {
+	index := L.locate(record.Key)
+	if index > 0 {
+		if bytes.Compare(L.Records[index-1].Key, record.Key) == 0 {
 			return false
 		}
 	}
-	L.Records = append(L.Records[:i], append([]*RecordMetaData{record}, L.Records[i:]...)...)
+	L.Records = append(L.Records[:index], append([]*RecordMetaData{record}, L.Records[index:]...)...)
 	if uint32(len(L.Records)) > *tree.info.Size {
 		L.split(tree)
 	}
@@ -169,15 +162,14 @@ func search(treenode TreeNode, key []byte, tree *Btree) []byte {
 
 }
 func (N *Node) search(key []byte, tree *Btree) []byte {
-	var i int
-	for i = 0; i < len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], key) > 0 {
-			break
-		}
-	}
-	return search(tree.nodes[N.Childrens[i]], key, tree)
+	N.RLock()
+	defer N.RUnlock()
+	index := N.locate(key)
+	return search(tree.nodes[N.Childrens[index]], key, tree)
 }
 func (L *Leaf) search(key []byte, tree *Btree) []byte {
+	L.RLock()
+	defer L.RUnlock()
 	for i := 0; i < len(L.Records); i++ {
 		//fmt.Println("key: ", string(L.Records[i].Key))
 		if bytes.Compare(L.Records[i].Key, key) == 0 {
@@ -201,13 +193,8 @@ func delete(treenode TreeNode, key []byte, tree *Btree) bool {
 func (N *Node) delete(key []byte, tree *Btree) bool {
 	N.Lock()
 	defer N.Unlock()
-	var i int
-	for i = 0; i < len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], key) > 0 {
-			break
-		}
-	}
-	return delete(tree.nodes[N.Childrens[i]], key, tree)
+	index := N.locate(key)
+	return delete(tree.nodes[N.Childrens[index]], key, tree)
 }
 func (L *Leaf) delete(key []byte, tree *Btree) bool {
 	L.Lock()
@@ -252,13 +239,8 @@ func update(treenode TreeNode, record *RecordMetaData, tree *Btree) bool {
 func (N *Node) update(record *RecordMetaData, tree *Btree) bool {
 	N.Lock()
 	defer N.Unlock()
-	var i int
-	for i = 0; i < len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], record.Key) > 0 {
-			break
-		}
-	}
-	return tree.nodes[N.Childrens[i]].update(record, tree)
+	index := N.locate(record.Key)
+	return tree.nodes[N.Childrens[index]].update(record, tree)
 }
 
 func (L *Leaf) update(record *RecordMetaData, tree *Btree) bool {
@@ -327,18 +309,13 @@ func (N *Node) split(tree *Btree) {
  * insert key into tree node
  */
 func (N *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btree) {
-	var i int
-	for i = 0; i< len(N.Keys); i++ {
-		if bytes.Compare(N.Keys[i], key) > 0 {
-			break
-		}
-	}
+	index := N.locate(key)
 	if len(N.Keys) == 0 {
 		N.Childrens = append([]int32{left_id}, right_id)
 	} else {
-		N.Childrens = append(N.Childrens[:i+1], append([]int32{right_id}, N.Childrens[i+1:]...)...)
+		N.Childrens = append(N.Childrens[:index+1], append([]int32{right_id}, N.Childrens[index+1:]...)...)
 	}
-	N.Keys = append(N.Keys[:i], append([][]byte{key}, N.Keys[i:]...)...)
+	N.Keys = append(N.Keys[:index], append([][]byte{key}, N.Keys[index:]...)...)
 	if len(N.Keys) > int(*tree.info.Size) {
 		N.split(tree)
 	}
@@ -361,21 +338,19 @@ func replace(oldkey []byte, newkey []byte, id int32, tree *Btree) {
 		}
 	}
 }
+/*
+ * merge leaf/node
+ */
 func merge(key []byte, node *Node, tree *Btree) {
-	var i int
-	for i = 0 ; i < len(node.Keys); i++ {
-		if bytes.Compare(node.Keys[i], key) > 0 {
-			break
-		}
-	}
-	if i == 0 {
-		i = 1
+	index := node.locate(key)
+	if index == 0 {
+		index = 1
 	}
 	if get_node(node.Childrens[0], tree) != nil {
-		node.mergenode(node.Childrens[i-1], node.Childrens[i], i-1, tree)
+		node.mergenode(node.Childrens[index-1], node.Childrens[index], index-1, tree)
 	} else {
 		removed_key := node.Keys[0]
-		node.mergeleaf(node.Childrens[i-1], node.Childrens[i], i-1, tree)
+		node.mergeleaf(node.Childrens[index-1], node.Childrens[index], index-1, tree)
 		if proto.GetBool(node.Removed) == false {
 			replace(key, removed_key, *node.Id, tree)
 		}
@@ -403,6 +378,9 @@ func (N *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btree) 
 		nextleaf.Prev = left.Id
 	}
 	remove(tree.nodes[*right.Id])
+	tree.Lock()
+	*tree.info.LeafCount --
+	tree.Unlock()
 	if N.Id != tree.info.Root {
 		node := get_node(*N.Father, tree)
 		merge(left.Records[0].Key, node, tree)
@@ -411,6 +389,7 @@ func (N *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btree) 
 		if len(N.Keys) == 0 {
 			remove(tree.nodes[*tree.info.Root])
 			tree.info.Root = left.Id
+			*tree.info.NodeCount --
 		}
 		tree.Unlock()
 	}
@@ -442,6 +421,7 @@ func (N *Node) mergenode(left_id int32, right_id int32, index int, tree *Btree) 
 			tree.Lock()
 			if len(N.Keys) == 0 {
 				remove(tree.nodes[*tree.info.Root])
+				*tree.info.NodeCount --
 				tree.info.Root = left.Id
 			}
 			tree.Unlock()
@@ -486,4 +466,22 @@ func get_leaf(id int32, tree *Btree) (*Leaf) {
 		return leaf
 	}
 	return nil
+}
+func (N *Node) locate(key []byte) (int) {
+	var i int
+	for i = 0 ; i < len(N.Keys); i++ {
+		if bytes.Compare(N.Keys[i], key) > 0 {
+			break
+		}
+	}
+	return i
+}
+func (L *Leaf) locate(key []byte) (int) {
+	var i int
+	for i = 0 ; i < len(L.Records); i++ {
+		if bytes.Compare(L.Records[i].Key, key) > 0 {
+			break
+		}
+	}
+	return i
 }
