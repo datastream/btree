@@ -8,8 +8,9 @@ message BtreeMetaData
   optional int32 node_count = 6;
   optional int32 leaf_max = 7;
   optional int32 node_max = 8;
-  repeated int32 free_list = 9;
-  optional uint32 size = 10;
+  repeated int32 free_leaf_list = 9;
+  repeated int32 free_node_list = 10;
+  optional uint32 size = 11;
 }
 message NodeMetaData
 {

@@ -118,9 +118,9 @@ func (T *Btree) newleaf() int32 {
 	*T.info.LeafCount ++
 	leaf := new(Leaf)
 	leaf.Removed = proto.Bool(false)
-	if len(T.info.FreeList) > 0 {
-		id = T.info.FreeList[len(T.info.FreeList)-1]
-		T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
+	if len(T.info.FreeLeafList) > 0 {
+		id = T.info.FreeLeafList[len(T.info.FreeLeafList)-1]
+		T.info.FreeLeafList = T.info.FreeLeafList[:len(T.info.FreeLeafList)-1]
 	} else {
 		id = *T.info.LastLeaf
 	}
@@ -136,9 +136,9 @@ func (T *Btree) newnode() int32 {
 	*T.info.NodeCount ++
 	node := new(Node)
 	node.Removed = proto.Bool(false)
-	if len(T.info.FreeList) > 0 {
-		id = T.info.FreeList[len(T.info.FreeList)-1]
-		T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
+	if len(T.info.FreeNodeList) > 0 {
+		id = T.info.FreeNodeList[len(T.info.FreeNodeList)-1]
+		T.info.FreeNodeList = T.info.FreeNodeList[:len(T.info.FreeNodeList)-1]
 	} else {
 		id = *T.info.LastNode
 	}
@@ -462,12 +462,12 @@ func (N *Node) mergenode(left_id int32, right_id int32, index int, tree *Btree) 
 
 func remove(treenode TreeNode, tree *Btree) {
 	if node, ok := treenode.(*Node); ok {
-		tree.info.FreeList = append(tree.info.FreeList, *node.Id)
+		tree.info.FreeNodeList = append(tree.info.FreeNodeList, *node.Id)
 		node.Removed = proto.Bool(true)
 		*tree.info.NodeCount --
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
-		tree.info.FreeList = append(tree.info.FreeList, *leaf.Id)
+		tree.info.FreeLeafList = append(tree.info.FreeLeafList, *leaf.Id)
 		leaf.Removed = proto.Bool(true)
 		*tree.info.LeafCount --
 	}

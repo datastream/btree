@@ -19,8 +19,9 @@ type BtreeMetaData struct {
 	NodeCount        *int32  `protobuf:"varint,6,opt,name=node_count" json:"node_count,omitempty"`
 	LeafMax          *int32  `protobuf:"varint,7,opt,name=leaf_max" json:"leaf_max,omitempty"`
 	NodeMax          *int32  `protobuf:"varint,8,opt,name=node_max" json:"node_max,omitempty"`
-	FreeList         []int32 `protobuf:"varint,9,rep,name=free_list" json:"free_list,omitempty"`
-	Size             *uint32 `protobuf:"varint,10,opt,name=size" json:"size,omitempty"`
+	FreeLeafList     []int32 `protobuf:"varint,9,rep,name=free_leaf_list" json:"free_leaf_list,omitempty"`
+	FreeNodeList     []int32 `protobuf:"varint,10,rep,name=free_node_list" json:"free_node_list,omitempty"`
+	Size             *uint32 `protobuf:"varint,11,opt,name=size" json:"size,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
