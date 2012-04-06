@@ -68,82 +68,82 @@ func NewBtreeSize(size uint32) *Btree {
 	return tree
 }
 
-func (T *Btree) Insert(record *RecordMetaData, rst chan bool) {
-	T.Lock()
-	if T.stat > 0 {
-		T.cond.Wait()
+func (this *Btree) Insert(record *RecordMetaData, rst chan bool) {
+	this.Lock()
+	if this.stat > 0 {
+		this.cond.Wait()
 	}
-	if T.free_node_count() < 50 || T.free_leaf_count() < 50 {
+	if this.free_node_count() < 50 || this.free_leaf_count() < 50 {
 		rst <- false
 		return
 	}
-	T.Unlock()
-	rst <- insert(T.nodes[*T.info.Root], record, T)
+	this.Unlock()
+	rst <- insert(this.nodes[*this.info.Root], record, this)
 }
 
-func (T *Btree) Delete(key []byte, rst chan bool) {
-	T.Lock()
-	if T.stat > 0 {
-		T.cond.Wait()
+func (this *Btree) Delete(key []byte, rst chan bool) {
+	this.Lock()
+	if this.stat > 0 {
+		this.cond.Wait()
 	}
-	T.Unlock()
-	rst <- delete(T.nodes[*T.info.Root], key, T)
+	this.Unlock()
+	rst <- delete(this.nodes[*this.info.Root], key, this)
 }
 
-func (T *Btree) Search(key []byte, rst chan []byte) {
-	T.Lock()
-	if T.stat > 0 {
-		T.cond.Wait()
+func (this *Btree) Search(key []byte, rst chan []byte) {
+	this.Lock()
+	if this.stat > 0 {
+		this.cond.Wait()
 	}
-	T.Unlock()
-	rst <- search(T.nodes[*T.info.Root], key, T)
+	this.Unlock()
+	rst <- search(this.nodes[*this.info.Root], key, this)
 }
 
-func (T *Btree) Update(record *RecordMetaData, rst chan bool) {
-	T.Lock()
-	if T.stat > 0 {
-		T.cond.Wait()
+func (this *Btree) Update(record *RecordMetaData, rst chan bool) {
+	this.Lock()
+	if this.stat > 0 {
+		this.cond.Wait()
 	}
-	T.Unlock()
-	rst <- update(T.nodes[*T.info.Root], record, T)
+	this.Unlock()
+	rst <- update(this.nodes[*this.info.Root], record, this)
 }
 /*
  * alloc leaf/node
  */
-func (T *Btree) newleaf() int32 {
-	T.Lock()
-	defer T.Unlock()
+func (this *Btree) newleaf() int32 {
+	this.Lock()
+	defer this.Unlock()
 	var id int32
-	*T.info.LastLeaf ++
-	*T.info.LeafCount ++
+	*this.info.LastLeaf ++
+	*this.info.LeafCount ++
 	leaf := new(Leaf)
 	leaf.Removed = proto.Bool(false)
-	if len(T.info.FreeLeafList) > 0 {
-		id = T.info.FreeLeafList[len(T.info.FreeLeafList)-1]
-		T.info.FreeLeafList = T.info.FreeLeafList[:len(T.info.FreeLeafList)-1]
+	if len(this.info.FreeLeafList) > 0 {
+		id = this.info.FreeLeafList[len(this.info.FreeLeafList)-1]
+		this.info.FreeLeafList = this.info.FreeLeafList[:len(this.info.FreeLeafList)-1]
 	} else {
-		id = *T.info.LastLeaf
+		id = *this.info.LastLeaf
 	}
 	leaf.Id = proto.Int32(id)
-	T.nodes[*leaf.Id] = leaf
+	this.nodes[*leaf.Id] = leaf
 	return id
 }
-func (T *Btree) newnode() int32 {
-	T.Lock()
-	defer T.Unlock()
+func (this *Btree) newnode() int32 {
+	this.Lock()
+	defer this.Unlock()
 	var id int32
-	*T.info.LastNode ++
-	*T.info.NodeCount ++
+	*this.info.LastNode ++
+	*this.info.NodeCount ++
 	node := new(Node)
 	node.Removed = proto.Bool(false)
-	if len(T.info.FreeNodeList) > 0 {
-		id = T.info.FreeNodeList[len(T.info.FreeNodeList)-1]
-		T.info.FreeNodeList = T.info.FreeNodeList[:len(T.info.FreeNodeList)-1]
+	if len(this.info.FreeNodeList) > 0 {
+		id = this.info.FreeNodeList[len(this.info.FreeNodeList)-1]
+		this.info.FreeNodeList = this.info.FreeNodeList[:len(this.info.FreeNodeList)-1]
 	} else {
-		id = *T.info.LastNode
+		id = *this.info.LastNode
 	}
 	node.Id = proto.Int32(id)
-	T.nodes[*node.Id] = node
+	this.nodes[*node.Id] = node
 	return id
 }
 /*
@@ -159,24 +159,24 @@ func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) bool {
 	}
 	return false
 }
-func (N *Node) insert(record *RecordMetaData, tree *Btree) bool {
-	N.Lock()
-	defer N.Unlock()
-	index := N.locate(record.Key)
-	return insert(tree.nodes[N.Childrens[index]], record, tree)
+func (this *Node) insert(record *RecordMetaData, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
+	index := this.locate(record.Key)
+	return insert(tree.nodes[this.Childrens[index]], record, tree)
 }
-func (L *Leaf) insert(record *RecordMetaData, tree *Btree) bool {
-	L.Lock()
-	defer L.Unlock()
-	index := L.locate(record.Key)
+func (this *Leaf) insert(record *RecordMetaData, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
+	index := this.locate(record.Key)
 	if index > 0 {
-		if bytes.Compare(L.Records[index-1].Key, record.Key) == 0 {
+		if bytes.Compare(this.Records[index-1].Key, record.Key) == 0 {
 			return false
 		}
 	}
-	L.Records = append(L.Records[:index], append([]*RecordMetaData{record}, L.Records[index:]...)...)
-	if uint32(len(L.Records)) > *tree.info.Size {
-		L.split(tree)
+	this.Records = append(this.Records[:index], append([]*RecordMetaData{record}, this.Records[index:]...)...)
+	if uint32(len(this.Records)) > *tree.info.Size {
+		this.split(tree)
 	}
 	return true
 }
@@ -193,19 +193,19 @@ func search(treenode TreeNode, key []byte, tree *Btree) []byte {
 	return nil
 
 }
-func (N *Node) search(key []byte, tree *Btree) []byte {
-	N.RLock()
-	defer N.RUnlock()
-	index := N.locate(key)
-	return search(tree.nodes[N.Childrens[index]], key, tree)
+func (this *Node) search(key []byte, tree *Btree) []byte {
+	this.RLock()
+	defer this.RUnlock()
+	index := this.locate(key)
+	return search(tree.nodes[this.Childrens[index]], key, tree)
 }
-func (L *Leaf) search(key []byte, tree *Btree) []byte {
-	L.RLock()
-	defer L.RUnlock()
-	index := L.locate(key) - 1
+func (this *Leaf) search(key []byte, tree *Btree) []byte {
+	this.RLock()
+	defer this.RUnlock()
+	index := this.locate(key) - 1
 	if index >= 0 {
-		if bytes.Compare(L.Records[index].Key, key) == 0 {
-			return L.Records[index].Value
+		if bytes.Compare(this.Records[index].Key, key) == 0 {
+			return this.Records[index].Value
 		}
 	}
 	return nil
@@ -222,31 +222,31 @@ func delete(treenode TreeNode, key []byte, tree *Btree) bool {
 	}
 	return false
 }
-func (N *Node) delete(key []byte, tree *Btree) bool {
-	N.Lock()
-	defer N.Unlock()
-	index := N.locate(key)
-	return delete(tree.nodes[N.Childrens[index]], key, tree)
+func (this *Node) delete(key []byte, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
+	index := this.locate(key)
+	return delete(tree.nodes[this.Childrens[index]], key, tree)
 }
-func (L *Leaf) delete(key []byte, tree *Btree) bool {
-	L.Lock()
-	defer L.Unlock()
+func (this *Leaf) delete(key []byte, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
 	var deleted bool
-	index := L.locate(key) -1
+	index := this.locate(key) -1
 	if index >= 0 {
-		if bytes.Compare(L.Records[index].Key, key) == 0 {
+		if bytes.Compare(this.Records[index].Key, key) == 0 {
 			deleted = true
 		}
 	}
 	if deleted {
-		L.Records = append(L.Records[:index],L.Records[index+1:]...)
-		if index == 0 && len(L.Records) > 0 {
-			if tree.info.Root != L.Id {
-				replace(key, L.Records[0].Key, *L.Father, tree)
+		this.Records = append(this.Records[:index],this.Records[index+1:]...)
+		if index == 0 && len(this.Records) > 0 {
+			if tree.info.Root != this.Id {
+				replace(key, this.Records[0].Key, *this.Father, tree)
 			}
 		}
-		if L.Id != tree.info.Root {
-			node := tree.nodes[*L.Father]
+		if this.Id != tree.info.Root {
+			node := tree.nodes[*this.Father]
 			if n, ok := node.(*Node); ok {
 				merge(key, n, tree)
 			}
@@ -267,20 +267,20 @@ func update(treenode TreeNode, record *RecordMetaData, tree *Btree) bool {
 	}
 	return false
 }
-func (N *Node) update(record *RecordMetaData, tree *Btree) bool {
-	N.Lock()
-	defer N.Unlock()
-	index := N.locate(record.Key)
-	return tree.nodes[N.Childrens[index]].update(record, tree)
+func (this *Node) update(record *RecordMetaData, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
+	index := this.locate(record.Key)
+	return tree.nodes[this.Childrens[index]].update(record, tree)
 }
 
-func (L *Leaf) update(record *RecordMetaData, tree *Btree) bool {
-	L.Lock()
-	defer L.Unlock()
-	index := L.locate(record.Key) - 1
+func (this *Leaf) update(record *RecordMetaData, tree *Btree) bool {
+	this.Lock()
+	defer this.Unlock()
+	index := this.locate(record.Key) - 1
 	if index >= 0 {
-		if bytes.Compare(L.Records[index].Key, record.Key) == 0 {
-			L.Records[index].Value = record.Value
+		if bytes.Compare(this.Records[index].Key, record.Key) == 0 {
+			this.Records[index].Value = record.Value
 			return true
 		}
 	}
@@ -289,67 +289,67 @@ func (L *Leaf) update(record *RecordMetaData, tree *Btree) bool {
 /*
  * Split
  */
-func (L *Leaf) split(tree *Btree) {
+func (this *Leaf) split(tree *Btree) {
 	newleaf := get_leaf(tree.newleaf(), tree)
-	newleaf.Records = make([]*RecordMetaData, len(L.Records[*tree.info.Size/2:]))
-	copy(newleaf.Records, L.Records[*tree.info.Size/2:])
-	L.Records = L.Records[:*tree.info.Size/2]
-	L.Next = newleaf.Id
-	newleaf.Prev = L.Id
+	newleaf.Records = make([]*RecordMetaData, len(this.Records[*tree.info.Size/2:]))
+	copy(newleaf.Records, this.Records[*tree.info.Size/2:])
+	this.Records = this.Records[:*tree.info.Size/2]
+	this.Next = newleaf.Id
+	newleaf.Prev = this.Id
 	if *tree.info.NodeCount != 0 {
-		tnode := get_node(*L.Father, tree)
-		newleaf.Father = L.Father
-		tnode.insert_once(newleaf.Records[0].Key, *L.Id, *newleaf.Id, tree)
+		tnode := get_node(*this.Father, tree)
+		newleaf.Father = this.Father
+		tnode.insert_once(newleaf.Records[0].Key, *this.Id, *newleaf.Id, tree)
 	} else {
 		tnode := get_node(tree.newnode(), tree)
-		tnode.insert_once(newleaf.Records[0].Key, *L.Id, *newleaf.Id, tree)
-		L.Father = tnode.Id
-		newleaf.Father = L.Father
+		tnode.insert_once(newleaf.Records[0].Key, *this.Id, *newleaf.Id, tree)
+		this.Father = tnode.Id
+		newleaf.Father = this.Father
 		tree.Lock()
 		tree.info.Root = tnode.Id
 		tree.Unlock()
 	}
 }
-func (N *Node) split(tree *Btree) {
+func (this *Node) split(tree *Btree) {
 	newnode := get_node(tree.newnode(), tree)
-	key := N.Keys[*tree.info.Size/2]
-	newnode.Keys = make([][]byte, len(N.Keys[*tree.info.Size/2+1:]))
-	copy(newnode.Keys, N.Keys[*tree.info.Size/2+1:])
-	N.Keys = N.Keys[:*tree.info.Size/2]
-	newnode.Childrens = make([]int32, len(N.Childrens[*tree.info.Size/2+1:]))
-	copy(newnode.Childrens, N.Childrens[*tree.info.Size/2+1:])
-	N.Childrens = N.Childrens[:*tree.info.Size/2+1]
+	key := this.Keys[*tree.info.Size/2]
+	newnode.Keys = make([][]byte, len(this.Keys[*tree.info.Size/2+1:]))
+	copy(newnode.Keys, this.Keys[*tree.info.Size/2+1:])
+	this.Keys = this.Keys[:*tree.info.Size/2]
+	newnode.Childrens = make([]int32, len(this.Childrens[*tree.info.Size/2+1:]))
+	copy(newnode.Childrens, this.Childrens[*tree.info.Size/2+1:])
+	this.Childrens = this.Childrens[:*tree.info.Size/2+1]
 	for l := 0; l < len(newnode.Childrens); l++ {
 		set_father(tree.nodes[newnode.Childrens[l]], newnode.Id)
 	}
-	if N.Id == tree.info.Root {
+	if this.Id == tree.info.Root {
 		tnode := get_node(tree.newnode(), tree)
-		N.Father = tnode.Id
-		newnode.Father = N.Father
-		tnode.insert_once(key, *N.Id, *newnode.Id, tree)
+		this.Father = tnode.Id
+		newnode.Father = this.Father
+		tnode.insert_once(key, *this.Id, *newnode.Id, tree)
 		tree.Lock()
 		tree.info.Root = tnode.Id
 		tree.Unlock()
 	} else {
-		newnode.Father = N.Father
-		tnode := get_node(*N.Father, tree)
-		tnode.insert_once(key, *N.Id, *newnode.Id, tree)
+		newnode.Father = this.Father
+		tnode := get_node(*this.Father, tree)
+		tnode.insert_once(key, *this.Id, *newnode.Id, tree)
 	}
 
 }
 /*
  * insert key into tree node
  */
-func (N *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btree) {
-	index := N.locate(key)
-	if len(N.Keys) == 0 {
-		N.Childrens = append([]int32{left_id}, right_id)
+func (this *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btree) {
+	index := this.locate(key)
+	if len(this.Keys) == 0 {
+		this.Childrens = append([]int32{left_id}, right_id)
 	} else {
-		N.Childrens = append(N.Childrens[:index+1], append([]int32{right_id}, N.Childrens[index+1:]...)...)
+		this.Childrens = append(this.Childrens[:index+1], append([]int32{right_id}, this.Childrens[index+1:]...)...)
 	}
-	N.Keys = append(N.Keys[:index], append([][]byte{key}, N.Keys[index:]...)...)
-	if len(N.Keys) > int(*tree.info.Size) {
-		N.split(tree)
+	this.Keys = append(this.Keys[:index], append([][]byte{key}, this.Keys[index:]...)...)
+	if len(this.Keys) > int(*tree.info.Size) {
+		this.split(tree)
 	}
 }
 /*
@@ -389,18 +389,18 @@ func merge(key []byte, node *Node, tree *Btree) {
 	}
 }
 
-func (N *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btree) {
+func (this *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btree) {
 	left := get_leaf(left_id, tree)
 	right := get_leaf(right_id, tree)
 	if (len(left.Records) + len(right.Records)) > int(*tree.info.Size) {
 		return
 	}
-	if index == len(N.Keys) {
-		N.Childrens = N.Childrens[:index]
-		N.Keys = N.Keys[:index-1]
+	if index == len(this.Keys) {
+		this.Childrens = this.Childrens[:index]
+		this.Keys = this.Keys[:index-1]
 	} else {
-		N.Childrens = append(N.Childrens[:index+1], N.Childrens[index+2:]...)
-		N.Keys = append(N.Keys[:index],N.Keys[index+1:]...)
+		this.Childrens = append(this.Childrens[:index+1], this.Childrens[index+2:]...)
+		this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
 	}
 	left.Records = append(left.Records, right.Records...)
 	right.Records = right.Records[:0]
@@ -412,46 +412,46 @@ func (N *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btree) 
 	tree.Lock()
 	remove(tree.nodes[*right.Id], tree)
 	tree.Unlock()
-	if N.Id != tree.info.Root {
-		node := get_node(*N.Father, tree)
+	if this.Id != tree.info.Root {
+		node := get_node(*this.Father, tree)
 		merge(left.Records[0].Key, node, tree)
 	} else {
 		tree.Lock()
-		if len(N.Keys) == 0 {
+		if len(this.Keys) == 0 {
 			remove(tree.nodes[*tree.info.Root], tree)
 			tree.info.Root = left.Id
 		}
 		tree.Unlock()
 	}
 }
-func (N *Node) mergenode(left_id int32, right_id int32, index int, tree *Btree) {
+func (this *Node) mergenode(left_id int32, right_id int32, index int, tree *Btree) {
 	left := get_node(left_id, tree)
 	right := get_node(right_id, tree)
 	if len(left.Keys) + len(right.Keys) >  int(*tree.info.Size) {
 		return
 	}
-	key := N.Keys[0]
+	key := this.Keys[0]
 	for l := 0; l < len(right.Childrens); l++ {
 		set_father(tree.nodes[right.Childrens[l]], left.Id)
 	}
-	left.Keys = append(left.Keys, append([][]byte{N.Keys[index]}, right.Keys...)...)
+	left.Keys = append(left.Keys, append([][]byte{this.Keys[index]}, right.Keys...)...)
 	left.Childrens = append(left.Childrens, right.Childrens...)
 	right.Keys = right.Keys[:0]
 	right.Childrens = right.Childrens[:0]
-	N.Keys = append(N.Keys[:index],N.Keys[index+1:]...)
-	N.Childrens = append(N.Childrens[:index+1], N.Childrens[index+2:]...)
+	this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
+	this.Childrens = append(this.Childrens[:index+1], this.Childrens[index+2:]...)
 	tree.Lock()
 	remove(tree.nodes[*right.Id], tree)
 	tree.Unlock()
 	if len(left.Keys) > int(*tree.info.Size) {
 		left.split(tree)
 	} else {
-		if N.Id != tree.info.Root {
-			node := get_node(*N.Father, tree)
+		if this.Id != tree.info.Root {
+			node := get_node(*this.Father, tree)
 			merge(key, node, tree)
 		} else {
 			tree.Lock()
-			if len(N.Keys) == 0 {
+			if len(this.Keys) == 0 {
 				remove(tree.nodes[*tree.info.Root], tree)
 				tree.info.Root = left.Id
 			}
@@ -502,15 +502,15 @@ func get_leaf(id int32, tree *Btree) (*Leaf) {
 	}
 	return nil
 }
-func (N *Node) locate(key []byte) (int) {
+func (this *Node) locate(key []byte) (int) {
 	i := 0
-	size := len(N.Keys)
+	size := len(this.Keys)
 	for {
 		mid := (i+size)/2
 		if i == size {
 			break
 		}
-		if bytes.Compare(N.Keys[mid], key) <= 0 {
+		if bytes.Compare(this.Keys[mid], key) <= 0 {
 			i = mid + 1
 		} else {
 			size = mid
@@ -518,15 +518,15 @@ func (N *Node) locate(key []byte) (int) {
 	}
 	return i
 }
-func (L *Leaf) locate(key []byte) (int) {
+func (this *Leaf) locate(key []byte) (int) {
 	i := 0
-	size := len(L.Records)
+	size := len(this.Records)
 	for {
 		mid := (i+size)/2
 		if i == size {
 			break
 		}
-		if bytes.Compare(L.Records[mid].Key, key) <= 0 {
+		if bytes.Compare(this.Records[mid].Key, key) <= 0 {
 			i = mid + 1
 		} else {
 			size = mid
@@ -534,9 +534,9 @@ func (L *Leaf) locate(key []byte) (int) {
 	}
 	return i
 }
-func (T *Btree)free_node_count() int32 {
-	return *T.info.NodeMax - *T.info.NodeCount
+func (this *Btree)free_node_count() int32 {
+	return *this.info.NodeMax - *this.info.NodeCount
 }
-func (T *Btree)free_leaf_count() int32 {
-	return *T.info.LeafMax - *T.info.LeafCount
+func (this *Btree)free_leaf_count() int32 {
+	return *this.info.LeafMax - *this.info.LeafCount
 }
