@@ -73,6 +73,10 @@ func (T *Btree) Insert(record *RecordMetaData, rst chan bool) {
 	if T.stat > 0 {
 		T.cond.Wait()
 	}
+	if T.free_node_count() < 50 || T.free_leaf_count() < 50 {
+		rst <- false
+		return
+	}
 	T.Unlock()
 	rst <- insert(T.nodes[*T.info.Root], record, T)
 }
@@ -110,46 +114,36 @@ func (T *Btree) newleaf() int32 {
 	T.Lock()
 	defer T.Unlock()
 	var id int32
-	if *T.info.LastLeaf >= *T.info.LeafMax {
-		T.stat = 1
-		return -1
+	*T.info.LastLeaf ++
+	*T.info.LeafCount ++
+	leaf := new(Leaf)
+	leaf.Removed = proto.Bool(false)
+	if len(T.info.FreeList) > 0 {
+		id = T.info.FreeList[len(T.info.FreeList)-1]
+		T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
 	} else {
-		*T.info.LastLeaf ++
-		*T.info.LeafCount ++
-		leaf := new(Leaf)
-		leaf.Removed = proto.Bool(false)
-		if len(T.info.FreeList) > 0 {
-			id = T.info.FreeList[len(T.info.FreeList)-1]
-			T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
-		} else {
-			id = *T.info.LastLeaf
-		}
-		leaf.Id = proto.Int32(id)
-		T.nodes[*leaf.Id] = leaf
+		id = *T.info.LastLeaf
 	}
+	leaf.Id = proto.Int32(id)
+	T.nodes[*leaf.Id] = leaf
 	return id
 }
 func (T *Btree) newnode() int32 {
 	T.Lock()
 	defer T.Unlock()
 	var id int32
-	if *T.info.LastNode >= *T.info.NodeMax {
-		T.stat = 1
-		return -1
+	*T.info.LastNode ++
+	*T.info.NodeCount ++
+	node := new(Node)
+	node.Removed = proto.Bool(false)
+	if len(T.info.FreeList) > 0 {
+		id = T.info.FreeList[len(T.info.FreeList)-1]
+		T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
 	} else {
-		*T.info.LastNode ++
-		*T.info.NodeCount ++
-		node := new(Node)
-		node.Removed = proto.Bool(false)
-		if len(T.info.FreeList) > 0 {
-			id = T.info.FreeList[len(T.info.FreeList)-1]
-			T.info.FreeList = T.info.FreeList[:len(T.info.FreeList)-1]
-		} else {
-			id = *T.info.LastNode
-		}
-		node.Id = proto.Int32(id)
-		T.nodes[*node.Id] = node
+		id = *T.info.LastNode
 	}
+	node.Id = proto.Int32(id)
+	T.nodes[*node.Id] = node
 	return id
 }
 /*
@@ -539,4 +533,10 @@ func (L *Leaf) locate(key []byte) (int) {
 		}
 	}
 	return i
+}
+func (T *Btree)free_node_count() int32 {
+	return *T.info.NodeMax - *T.info.NodeCount
+}
+func (T *Btree)free_leaf_count() int32 {
+	return *T.info.LeafMax - *T.info.LeafCount
 }
