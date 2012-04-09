@@ -11,23 +11,24 @@ message BtreeMetaData
   repeated int32 free_leaf_list = 9;
   repeated int32 free_node_list = 10;
   optional uint32 size = 11;
+  optional int32 version = 12;
 }
 message NodeMetaData
 {
   optional int32 id = 1;
-  optional int32 father = 2;
-  repeated int32 childrens = 3;
-  repeated bytes keys = 4;
-  optional bool removed = 5;
+  repeated int32 childrens = 2;
+  repeated bytes keys = 3;
+  optional bool removed = 4;
+  optional int32 version = 5;
 }
 message LeafMetaData
 {
   optional int32 id = 1;
-  optional int32 father = 2;
-  optional int32 next = 3;
-  optional int32 prev = 4;
-  repeated RecordMetaData records = 8;
+  optional int32 next = 2;
+  optional int32 prev = 3;
+  repeated RecordMetaData records = 4;
   optional bool removed = 5;
+  optional int32 version = 6;
 }
 message RecordMetaData
 {

@@ -22,6 +22,7 @@ type BtreeMetaData struct {
 	FreeLeafList     []int32 `protobuf:"varint,9,rep,name=free_leaf_list" json:"free_leaf_list,omitempty"`
 	FreeNodeList     []int32 `protobuf:"varint,10,rep,name=free_node_list" json:"free_node_list,omitempty"`
 	Size             *uint32 `protobuf:"varint,11,opt,name=size" json:"size,omitempty"`
+	Version          *int32  `protobuf:"varint,12,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -30,10 +31,10 @@ func (this *BtreeMetaData) String() string { return proto.CompactTextString(this
 
 type NodeMetaData struct {
 	Id               *int32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Father           *int32   `protobuf:"varint,2,opt,name=father" json:"father,omitempty"`
-	Childrens        []int32  `protobuf:"varint,3,rep,name=childrens" json:"childrens,omitempty"`
-	Keys             [][]byte `protobuf:"bytes,4,rep,name=keys" json:"keys,omitempty"`
-	Removed          *bool    `protobuf:"varint,5,opt,name=removed" json:"removed,omitempty"`
+	Childrens        []int32  `protobuf:"varint,2,rep,name=childrens" json:"childrens,omitempty"`
+	Keys             [][]byte `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
+	Removed          *bool    `protobuf:"varint,4,opt,name=removed" json:"removed,omitempty"`
+	Version          *int32   `protobuf:"varint,5,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
@@ -42,11 +43,11 @@ func (this *NodeMetaData) String() string { return proto.CompactTextString(this)
 
 type LeafMetaData struct {
 	Id               *int32            `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Father           *int32            `protobuf:"varint,2,opt,name=father" json:"father,omitempty"`
-	Next             *int32            `protobuf:"varint,3,opt,name=next" json:"next,omitempty"`
-	Prev             *int32            `protobuf:"varint,4,opt,name=prev" json:"prev,omitempty"`
-	Records          []*RecordMetaData `protobuf:"bytes,8,rep,name=records" json:"records,omitempty"`
+	Next             *int32            `protobuf:"varint,2,opt,name=next" json:"next,omitempty"`
+	Prev             *int32            `protobuf:"varint,3,opt,name=prev" json:"prev,omitempty"`
+	Records          []*RecordMetaData `protobuf:"bytes,4,rep,name=records" json:"records,omitempty"`
 	Removed          *bool             `protobuf:"varint,5,opt,name=removed" json:"removed,omitempty"`
+	Version          *int32            `protobuf:"varint,6,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
 
