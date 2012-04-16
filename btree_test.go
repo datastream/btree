@@ -84,7 +84,6 @@ func TestBtree(t *testing.T) {
 	testBtreeUpdate(t, tree, 200)
 	testBtreeSearch(t, tree, 200)
 	testBtreeDeleteCheck(t, tree, 200)
-	tree = btree.NewBtree()
 	testBtreeInsert(t, tree, 200)
 	testBtreeDelete(t, tree, 200)
 }

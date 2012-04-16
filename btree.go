@@ -252,7 +252,7 @@ func delete(treenode TreeNode, key []byte, tree *Btree) bool {
 				if len(node.Keys) == 0 {
 					tree.Lock()
 					remove(tree.nodes[*tree.info.Root], tree)
-					tree.info.Root = &node.Childrens[0]
+					tree.info.Root = get_id(node.Childrens[0], tree)
 					tree.Unlock()
 				}
 			}
@@ -465,6 +465,15 @@ func get_node(id int32, tree *Btree) (*Node) {
 func get_leaf(id int32, tree *Btree) (*Leaf) {
 	if leaf, ok := tree.nodes[id].(*Leaf); ok {
 		return leaf
+	}
+	return nil
+}
+func get_id(id int32, tree *Btree) *int32 {
+	if node, ok := tree.nodes[id].(*Node); ok {
+		return node.Id
+	}
+	if leaf, ok := tree.nodes[id].(*Leaf); ok {
+		return leaf.Id
 	}
 	return nil
 }
