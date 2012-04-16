@@ -79,11 +79,12 @@ func testBtreeDelete(t *testing.T, tree *btree.Btree, size int) {
 
 func TestBtree(t *testing.T) {
 	tree := btree.NewBtreeSize(5)
-	testBtreeInsert(t, tree, 200)
-	testBtreeSearch(t, tree, 200)
-	testBtreeUpdate(t, tree, 200)
-	testBtreeSearch(t, tree, 200)
-	testBtreeDeleteCheck(t, tree, 200)
-	testBtreeInsert(t, tree, 200)
-	testBtreeDelete(t, tree, 200)
+	size := 80000
+	testBtreeInsert(t, tree, size)
+	testBtreeSearch(t, tree, size)
+	testBtreeUpdate(t, tree, size)
+	testBtreeSearch(t, tree, size)
+	testBtreeDeleteCheck(t, tree, size)
+	testBtreeInsert(t, tree, size)
+	testBtreeDelete(t, tree, size)
 }
