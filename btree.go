@@ -251,8 +251,9 @@ func delete(treenode TreeNode, key []byte, tree *Btree) bool {
 			if node.Id == tree.info.Root {
 				if len(node.Keys) == 0 {
 					tree.Lock()
-					remove(tree.nodes[*tree.info.Root], tree)
+					tmp := tree.nodes[*tree.info.Root]
 					tree.info.Root = get_id(node.Childrens[0], tree)
+					remove(tmp, tree)
 					tree.Unlock()
 				}
 			}
@@ -413,7 +414,6 @@ func (this *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btre
 		this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
 	}
 	left.Records = append(left.Records, right.Records...)
-	right.Records = right.Records[:0]
 	left.Next = right.Next
 	if right.Next != nil {
 		nextleaf := get_leaf(*right.Next, tree)
@@ -431,8 +431,6 @@ func (this *Node) mergenode(left_id int32, right_id int32, index int, tree *Btre
 	}
 	left_node.Keys = append(left_node.Keys, append([][]byte{this.Keys[index]}, right_node.Keys...)...)
 	left_node.Childrens = append(left_node.Childrens, right_node.Childrens...)
-	right_node.Keys = right_node.Keys[:0]
-	right_node.Childrens = right_node.Childrens[:0]
 	this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
 	this.Childrens = append(this.Childrens[:index+1], this.Childrens[index+2:]...)
 	tree.Lock()
@@ -447,12 +445,15 @@ func (this *Node) mergenode(left_id int32, right_id int32, index int, tree *Btre
 func remove(treenode TreeNode, tree *Btree) {
 	if node, ok := treenode.(*Node); ok {
 		tree.info.FreeNodeList = append(tree.info.FreeNodeList, *node.Id)
+		node.Keys = node.Keys[:0]
+		node.Childrens = node.Childrens[:0]
 		node.Removed = proto.Bool(true)
 		*tree.info.NodeCount --
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
 		tree.info.FreeLeafList = append(tree.info.FreeLeafList, *leaf.Id)
 		leaf.Removed = proto.Bool(true)
+		leaf.Records = leaf.Records[:0]
 		*tree.info.LeafCount --
 	}
 }
