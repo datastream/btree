@@ -2,16 +2,14 @@ message BtreeMetaData
 {
   optional int32 root = 1;
   optional int32 first_leaf = 2;
-  optional int32 last_leaf = 3;
-  optional int32 last_node = 4;
-  optional int32 leaf_count = 5;
-  optional int32 node_count = 6;
-  optional int32 leaf_max = 7;
-  optional int32 node_max = 8;
-  repeated int32 free_leaf_list = 9;
-  repeated int32 free_node_list = 10;
-  optional uint32 size = 11;
-  optional int32 version = 12;
+  optional int32 leaf_count = 3;
+  optional int32 node_count = 4;
+  optional int32 leaf_max = 5;
+  optional int32 node_max = 6;
+  repeated int32 free_list = 7;
+  optional int32 size = 8;
+  optional int32 version = 9;
+  optional int32 index_cursor = 10;
 }
 message NodeMetaData
 {
@@ -24,11 +22,9 @@ message NodeMetaData
 message LeafMetaData
 {
   optional int32 id = 1;
-  optional int32 next = 2;
-  optional int32 prev = 3;
-  repeated RecordMetaData records = 4;
-  optional int32 state = 5;
-  optional int32 version = 6;
+  repeated RecordMetaData records = 2;
+  optional int32 state = 3;
+  optional int32 version = 4;
 }
 message RecordMetaData
 {

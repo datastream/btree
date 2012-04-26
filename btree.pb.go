@@ -13,16 +13,14 @@ var _ = math.Inf
 type BtreeMetaData struct {
 	Root             *int32  `protobuf:"varint,1,opt,name=root" json:"root,omitempty"`
 	FirstLeaf        *int32  `protobuf:"varint,2,opt,name=first_leaf" json:"first_leaf,omitempty"`
-	LastLeaf         *int32  `protobuf:"varint,3,opt,name=last_leaf" json:"last_leaf,omitempty"`
-	LastNode         *int32  `protobuf:"varint,4,opt,name=last_node" json:"last_node,omitempty"`
-	LeafCount        *int32  `protobuf:"varint,5,opt,name=leaf_count" json:"leaf_count,omitempty"`
-	NodeCount        *int32  `protobuf:"varint,6,opt,name=node_count" json:"node_count,omitempty"`
-	LeafMax          *int32  `protobuf:"varint,7,opt,name=leaf_max" json:"leaf_max,omitempty"`
-	NodeMax          *int32  `protobuf:"varint,8,opt,name=node_max" json:"node_max,omitempty"`
-	FreeLeafList     []int32 `protobuf:"varint,9,rep,name=free_leaf_list" json:"free_leaf_list,omitempty"`
-	FreeNodeList     []int32 `protobuf:"varint,10,rep,name=free_node_list" json:"free_node_list,omitempty"`
-	Size             *uint32 `protobuf:"varint,11,opt,name=size" json:"size,omitempty"`
-	Version          *int32  `protobuf:"varint,12,opt,name=version" json:"version,omitempty"`
+	LeafCount        *int32  `protobuf:"varint,3,opt,name=leaf_count" json:"leaf_count,omitempty"`
+	NodeCount        *int32  `protobuf:"varint,4,opt,name=node_count" json:"node_count,omitempty"`
+	LeafMax          *int32  `protobuf:"varint,5,opt,name=leaf_max" json:"leaf_max,omitempty"`
+	NodeMax          *int32  `protobuf:"varint,6,opt,name=node_max" json:"node_max,omitempty"`
+	FreeList         []int32 `protobuf:"varint,7,rep,name=free_list" json:"free_list,omitempty"`
+	Size             *int32  `protobuf:"varint,8,opt,name=size" json:"size,omitempty"`
+	Version          *int32  `protobuf:"varint,9,opt,name=version" json:"version,omitempty"`
+	IndexCursor      *int32  `protobuf:"varint,10,opt,name=index_cursor" json:"index_cursor,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -43,11 +41,9 @@ func (this *NodeMetaData) String() string { return proto.CompactTextString(this)
 
 type LeafMetaData struct {
 	Id               *int32            `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Next             *int32            `protobuf:"varint,2,opt,name=next" json:"next,omitempty"`
-	Prev             *int32            `protobuf:"varint,3,opt,name=prev" json:"prev,omitempty"`
-	Records          []*RecordMetaData `protobuf:"bytes,4,rep,name=records" json:"records,omitempty"`
-	State            *int32            `protobuf:"varint,5,opt,name=state" json:"state,omitempty"`
-	Version          *int32            `protobuf:"varint,6,opt,name=version" json:"version,omitempty"`
+	Records          []*RecordMetaData `protobuf:"bytes,2,rep,name=records" json:"records,omitempty"`
+	State            *int32            `protobuf:"varint,3,opt,name=state" json:"state,omitempty"`
+	Version          *int32            `protobuf:"varint,4,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
 
