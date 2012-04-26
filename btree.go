@@ -15,6 +15,7 @@ type Btree struct {
 	sync.RWMutex
 	stat int
 	cond *sync.Cond
+	cloneroot *int32
 	snaproot []int32
 	current_version int32
 }
@@ -96,7 +97,8 @@ func (this *Btree) Delete(key []byte, rst chan bool) {
 		this.cond.Wait()
 	}
 	this.Unlock()
-	rst <- delete(this.nodes[*this.info.Root], key, this)
+	stat, _ :=  delete(this.nodes[*this.info.Root], key, this)
+	rst <- stat
 }
 
 func (this *Btree) Search(key []byte, rst chan []byte) {
@@ -165,7 +167,7 @@ func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) (rst, split 
 		rst  = clonenode.insert(record, tree)
 		if len(clonenode.Keys) > int(*tree.info.Size) {
 			key, left, right = clonenode.split(tree)
-			if  node.Id == tree.info.Root {
+			if  *node.Id == *tree.info.Root {
 				tnode := get_node(tree.newnode(), tree)
 				tnode.insert_once(key, *left, *right, tree)
 				tree.Lock()
@@ -189,7 +191,7 @@ func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) (rst, split 
 		rst  = cloneleaf.insert(record, tree)
 		if len(cloneleaf.Records) > int(*tree.info.Size) {
 			key, left, right = cloneleaf.split(tree)
-			if int(*tree.info.NodeCount) == 0 {
+			if *leaf.Id == *tree.info.Root {
 				tnode := get_node(tree.newnode(), tree)
 				tnode.insert_once(key, *left, *right, tree)
 				tree.Lock()
@@ -267,31 +269,54 @@ func (this *Leaf) search(key []byte, tree *Btree) []byte {
 /*
  * Delete
  */
-func delete(treenode TreeNode, key []byte, tree *Btree) bool {
+func delete(treenode TreeNode, key []byte, tree *Btree) (rst bool, refer *int32) {
+	var dup_id *int32
+	rst = false
 	if node, ok := treenode.(*Node); ok {
-		if node.delete(key, tree) {
-			if node.Id == tree.info.Root {
-				if len(node.Keys) == 0 {
+		clonenode := tree.clonenode(node)
+		if *node.Id == *tree.info.Root {
+			tree.Lock()
+			tree.cloneroot = clonenode.Id
+			tree.Unlock()
+		}
+		if clonenode.delete(key, tree) {
+			if *node.Id == *tree.info.Root {
+				if len(clonenode.Keys) == 0 {
 					tree.Lock()
-					tmp := tree.nodes[*tree.info.Root]
-					tree.info.Root = get_id(node.Childrens[0], tree)
+					tmp := tree.nodes[*tree.cloneroot]
+					tree.info.Root = get_id(clonenode.Childrens[0], tree)
 					remove(tmp, tree)
+					tree.Unlock()
+				} else {
+					tree.Lock()
+					tree.info.Root = clonenode.Id
 					tree.Unlock()
 				}
 			}
-			return true
+			rst = true
+			dup_id = clonenode.Id
 		}
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
-		return leaf.delete(key, tree)
+		cloneleaf := tree.cloneleaf(leaf)
+		rst = cloneleaf.delete(key, tree)
+		if *leaf.Id == *tree.info.Root {
+			tree.Lock()
+			tree.info.Root = cloneleaf.Id
+			tree.Unlock()
+		}
+		dup_id = cloneleaf.Id
 	}
-	return false
+	refer = dup_id
+	return
 }
 func (this *Node) delete(key []byte, tree *Btree) bool {
 	this.Lock()
 	defer this.Unlock()
 	index := this.locate(key)
-	if delete(tree.nodes[this.Childrens[index]], key, tree) {
+	rst, refer :=  delete(tree.nodes[this.Childrens[index]], key, tree)
+	if rst {
+		this.Childrens[index] = *refer
 		if index == 0 {
 			index = 1
 		}
@@ -302,7 +327,7 @@ func (this *Node) delete(key []byte, tree *Btree) bool {
 				removed_key := this.Keys[0]
 				this.mergeleaf(this.Childrens[index-1], this.Childrens[index], index-1, tree)
 				if index == 1 {
-					replace(key, removed_key, *tree.info.Root, tree)
+					replace(key, removed_key, *tree.cloneroot, tree)
 				}
 			}
 		}
@@ -323,8 +348,8 @@ func (this *Leaf) delete(key []byte, tree *Btree) bool {
 	if deleted {
 		this.Records = append(this.Records[:index],this.Records[index+1:]...)
 		if index == 0 && len(this.Records) > 0 {
-			if tree.info.Root != this.Id {
-				replace(key, this.Records[0].Key, *tree.info.Root, tree)
+			if *tree.cloneroot != *this.Id {
+				replace(key, this.Records[0].Key, *tree.cloneroot, tree)
 			}
 		}
 		return true
