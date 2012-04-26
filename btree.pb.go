@@ -33,7 +33,7 @@ type NodeMetaData struct {
 	Id               *int32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	Childrens        []int32  `protobuf:"varint,2,rep,name=childrens" json:"childrens,omitempty"`
 	Keys             [][]byte `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
-	Removed          *bool    `protobuf:"varint,4,opt,name=removed" json:"removed,omitempty"`
+	State            *int32   `protobuf:"varint,4,opt,name=state" json:"state,omitempty"`
 	Version          *int32   `protobuf:"varint,5,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
@@ -46,7 +46,7 @@ type LeafMetaData struct {
 	Next             *int32            `protobuf:"varint,2,opt,name=next" json:"next,omitempty"`
 	Prev             *int32            `protobuf:"varint,3,opt,name=prev" json:"prev,omitempty"`
 	Records          []*RecordMetaData `protobuf:"bytes,4,rep,name=records" json:"records,omitempty"`
-	Removed          *bool             `protobuf:"varint,5,opt,name=removed" json:"removed,omitempty"`
+	State            *int32            `protobuf:"varint,5,opt,name=state" json:"state,omitempty"`
 	Version          *int32            `protobuf:"varint,6,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }

@@ -18,7 +18,7 @@ message NodeMetaData
   optional int32 id = 1;
   repeated int32 childrens = 2;
   repeated bytes keys = 3;
-  optional bool removed = 4;
+  optional int32 state = 4;
   optional int32 version = 5;
 }
 message LeafMetaData
@@ -27,7 +27,7 @@ message LeafMetaData
   optional int32 next = 2;
   optional int32 prev = 3;
   repeated RecordMetaData records = 4;
-  optional bool removed = 5;
+  optional int32 state = 5;
   optional int32 version = 6;
 }
 message RecordMetaData
