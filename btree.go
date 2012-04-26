@@ -3,6 +3,7 @@ package btree
 import (
 	"sync"
 	"bytes"
+	"fmt"
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -26,7 +27,7 @@ type Node struct {
 	sync.RWMutex
 }
 type TreeNode interface {
-	insert(record *RecordMetaData, tree *Btree)  (split bool, key []byte, left *int32, right *int32)
+	insert(record *RecordMetaData, tree *Btree) bool
 	delete(key []byte, tree *Btree) bool
 	update(recode *RecordMetaData, tree *Btree) bool
 	search(key []byte, tree *Btree) []byte
@@ -50,6 +51,7 @@ func NewBtree() *Btree {
 	}
 	tree.info.Version = proto.Int32(0)
 	tree.info.Root =  proto.Int32(tree.newleaf())
+	fmt.Println("start tree")
 	return tree
 }
 
@@ -84,8 +86,8 @@ func (this *Btree) Insert(record *RecordMetaData, rst chan bool) {
 		return
 	}
 	this.Unlock()
-	insert(this.nodes[*this.info.Root], record, this)
-	rst <- true
+	stat, _, _, _, _, _ := insert(this.nodes[*this.info.Root], record, this)
+	rst <- stat
 }
 
 func (this *Btree) Delete(key []byte, rst chan bool) {
@@ -124,7 +126,7 @@ func (this *Btree) newleaf() int32 {
 	*this.info.LastLeaf ++
 	*this.info.LeafCount ++
 	leaf := new(Leaf)
-	leaf.Removed = proto.Bool(false)
+	leaf.State = proto.Int32(0)
 	if len(this.info.FreeLeafList) > 0 {
 		id = this.info.FreeLeafList[len(this.info.FreeLeafList)-1]
 		this.info.FreeLeafList = this.info.FreeLeafList[:len(this.info.FreeLeafList)-1]
@@ -142,7 +144,7 @@ func (this *Btree) newnode() int32 {
 	*this.info.LastNode ++
 	*this.info.NodeCount ++
 	node := new(Node)
-	node.Removed = proto.Bool(false)
+	node.State = proto.Int32(0)
 	if len(this.info.FreeNodeList) > 0 {
 		id = this.info.FreeNodeList[len(this.info.FreeNodeList)-1]
 		this.info.FreeNodeList = this.info.FreeNodeList[:len(this.info.FreeNodeList)-1]
@@ -156,61 +158,81 @@ func (this *Btree) newnode() int32 {
 /*
  * Insert
  */
-func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) (split bool, key []byte, left *int32, right *int32) {
+func insert(treenode TreeNode, record *RecordMetaData, tree *Btree) (rst, split bool, key []byte, left, right, refer *int32) {
+	var dup_id *int32
 	if node, ok := treenode.(*Node); ok {
-		split, key, left, right = node.insert(record, tree)
-		if split && node.Id == tree.info.Root {
-			tnode := get_node(tree.newnode(), tree)
-			tnode.insert_once(key, *left, *right, tree)
-			tree.Lock()
-			tree.info.Root = tnode.Id
-			tree.Unlock()
-			split = false
+		clonenode := tree.clonenode(node)
+		rst  = clonenode.insert(record, tree)
+		if len(clonenode.Keys) > int(*tree.info.Size) {
+			key, left, right = clonenode.split(tree)
+			if  node.Id == tree.info.Root {
+				tnode := get_node(tree.newnode(), tree)
+				tnode.insert_once(key, *left, *right, tree)
+				tree.Lock()
+				tree.info.Root = tnode.Id
+				tree.Unlock()
+			} else {
+				split = true
+			}
+		}
+		if rst && *node.Id == *tree.info.Root {
+				tree.Lock()
+				tree.info.Root = clonenode.Id
+				tree.Unlock()
+		} else {
+			dup_id = clonenode.Id
+			mark_dup(node, tree)
 		}
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
-		split, key, left, right = leaf.insert(record, tree)
-		if split && int(*tree.info.NodeCount) == 0 {
-			tnode := get_node(tree.newnode(), tree)
-			tnode.insert_once(key, *left, *right, tree)
+		cloneleaf := tree.cloneleaf(leaf)
+		rst  = cloneleaf.insert(record, tree)
+		if len(cloneleaf.Records) > int(*tree.info.Size) {
+			key, left, right = cloneleaf.split(tree)
+			if int(*tree.info.NodeCount) == 0 {
+				tnode := get_node(tree.newnode(), tree)
+				tnode.insert_once(key, *left, *right, tree)
+				tree.Lock()
+				tree.info.Root = tnode.Id
+				tree.Unlock()
+			} else {
+				split = true
+			}
+		}
+		if rst && *leaf.Id == *tree.info.Root {
 			tree.Lock()
-			tree.info.Root = tnode.Id
+			tree.info.Root = cloneleaf.Id
 			tree.Unlock()
-			split = false
+		} else {
+			dup_id = cloneleaf.Id
+			mark_dup(leaf, tree)
 		}
 	}
+	refer = dup_id
 	return
 }
-func (this *Node) insert(record *RecordMetaData, tree *Btree) (split bool, key []byte, left *int32, right *int32) {
+func (this *Node) insert(record *RecordMetaData, tree *Btree) (bool) {
 	this.Lock()
 	defer this.Unlock()
 	index := this.locate(record.Key)
-	split, key, left, right = insert(tree.nodes[this.Childrens[index]], record, tree)
-	if split {
+	rst, split, key, left, right, refer := insert(tree.nodes[this.Childrens[index]], record, tree)
+	this.Childrens[index] = *refer
+	if split && rst {
 		this.insert_once(key, *left, *right, tree)
-		split = false
 	}
-	if len(this.Keys) > int(*tree.info.Size) {
-		split = true
-		key, left, right = this.split(tree)
-	}
-	return
+	return rst
 }
-func (this *Leaf) insert(record *RecordMetaData, tree *Btree) (split bool, key []byte, left *int32, right *int32) {
+func (this *Leaf) insert(record *RecordMetaData, tree *Btree) (bool) {
 	this.Lock()
 	defer this.Unlock()
-	split = false
 	index := this.locate(record.Key)
 	if index > 0 {
 		if bytes.Compare(this.Records[index-1].Key, record.Key) == 0 {
+			return false
 		}
 	}
 	this.Records = append(this.Records[:index], append([]*RecordMetaData{record}, this.Records[index:]...)...)
-	if len(this.Records) > int(*tree.info.Size) {
-		split = true
-		key, left, right = this.split(tree)
-	}
-	return
+	return true
 }
 /*
  * Search
@@ -447,13 +469,23 @@ func remove(treenode TreeNode, tree *Btree) {
 		tree.info.FreeNodeList = append(tree.info.FreeNodeList, *node.Id)
 		node.Keys = node.Keys[:0]
 		node.Childrens = node.Childrens[:0]
-		node.Removed = proto.Bool(true)
+		node.State = proto.Int32(-1)
 		*tree.info.NodeCount --
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
 		tree.info.FreeLeafList = append(tree.info.FreeLeafList, *leaf.Id)
-		leaf.Removed = proto.Bool(true)
+		leaf.State = proto.Int32(-1)
 		leaf.Records = leaf.Records[:0]
+		*tree.info.LeafCount --
+	}
+}
+func mark_dup(treenode TreeNode, tree *Btree) {
+	if node, ok := treenode.(*Node); ok {
+		node.State = proto.Int32(1)
+		*tree.info.NodeCount --
+	}
+	if leaf, ok := treenode.(*Leaf); ok {
+		leaf.State = proto.Int32(1)
 		*tree.info.LeafCount --
 	}
 }
@@ -509,6 +541,25 @@ func (this *Leaf) locate(key []byte) (int) {
 		}
 	}
 	return i
+}
+func (this *Btree) clonenode(node *Node) (*Node) {
+	newnode := get_node(this.newnode(), this)
+	newnode.Keys = make([][]byte, len(node.Keys))
+	copy(newnode.Keys, node.Keys)
+	newnode.Childrens = make([]int32, len(node.Childrens))
+	copy(newnode.Childrens, node.Childrens)
+	return newnode
+}
+func (this *Btree) cloneleaf(leaf *Leaf) (*Leaf) {
+	if len(leaf.Records) == 0 {
+		return leaf
+	}
+	newleaf := get_leaf(this.newleaf(), this)
+	newleaf.Records = make([]*RecordMetaData, len(leaf.Records))
+	copy(newleaf.Records, leaf.Records)
+	newleaf.Prev = leaf.Prev
+	newleaf.Next = leaf.Next
+	return newleaf
 }
 func (this *Btree)free_node_count() int32 {
 	return *this.info.NodeMax - *this.info.NodeCount
