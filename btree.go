@@ -116,7 +116,8 @@ func (this *Btree) Update(record *RecordMetaData, rst chan bool) {
 		this.cond.Wait()
 	}
 	this.Unlock()
-	rst <- update(this.nodes[*this.info.Root], record, this)
+	stat, _ := update(this.nodes[*this.info.Root], record, this)
+	rst <- stat
 }
 /*
  * alloc leaf/node
@@ -359,20 +360,26 @@ func (this *Leaf) delete(key []byte, tree *Btree) bool {
 /*
  * Update
  */
-func update(treenode TreeNode, record *RecordMetaData, tree *Btree) bool {
+func update(treenode TreeNode, record *RecordMetaData, tree *Btree) (bool, *int32) {
 	if node, ok := treenode.(*Node); ok {
-		return node.update(record, tree)
+		clonenode := tree.clonenode(node)
+		return clonenode.update(record, tree), clonenode.Id
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
-		return leaf.update(record, tree)
+		cloneleaf := tree.cloneleaf(leaf)
+		return cloneleaf.update(record, tree), cloneleaf.Id
 	}
-	return false
+	return false, nil
 }
 func (this *Node) update(record *RecordMetaData, tree *Btree) bool {
 	this.Lock()
 	defer this.Unlock()
 	index := this.locate(record.Key)
-	return tree.nodes[this.Childrens[index]].update(record, tree)
+	stat, clone := update(tree.nodes[this.Childrens[index]], record, tree)
+	if stat {
+		this.Childrens[index] = *clone
+	}
+	return stat
 }
 
 func (this *Leaf) update(record *RecordMetaData, tree *Btree) bool {
