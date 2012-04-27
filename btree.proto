@@ -1,15 +1,14 @@
 message BtreeMetaData
 {
   optional int32 root = 1;
-  optional int32 first_leaf = 2;
-  optional int32 leaf_count = 3;
-  optional int32 node_count = 4;
-  optional int32 leaf_max = 5;
-  optional int32 node_max = 6;
-  repeated int32 free_list = 7;
-  optional int32 size = 8;
-  optional int32 version = 9;
-  optional int32 index_cursor = 10;
+  optional int32 leaf_count = 2;
+  optional int32 node_count = 3;
+  optional int32 leaf_max = 4;
+  optional int32 node_max = 5;
+  repeated int32 free_list = 6;
+  optional int32 size = 7;
+  optional int32 version = 8;
+  optional int32 index_cursor = 9;
 }
 message NodeMetaData
 {

@@ -12,15 +12,14 @@ var _ = math.Inf
 
 type BtreeMetaData struct {
 	Root             *int32  `protobuf:"varint,1,opt,name=root" json:"root,omitempty"`
-	FirstLeaf        *int32  `protobuf:"varint,2,opt,name=first_leaf" json:"first_leaf,omitempty"`
-	LeafCount        *int32  `protobuf:"varint,3,opt,name=leaf_count" json:"leaf_count,omitempty"`
-	NodeCount        *int32  `protobuf:"varint,4,opt,name=node_count" json:"node_count,omitempty"`
-	LeafMax          *int32  `protobuf:"varint,5,opt,name=leaf_max" json:"leaf_max,omitempty"`
-	NodeMax          *int32  `protobuf:"varint,6,opt,name=node_max" json:"node_max,omitempty"`
-	FreeList         []int32 `protobuf:"varint,7,rep,name=free_list" json:"free_list,omitempty"`
-	Size             *int32  `protobuf:"varint,8,opt,name=size" json:"size,omitempty"`
-	Version          *int32  `protobuf:"varint,9,opt,name=version" json:"version,omitempty"`
-	IndexCursor      *int32  `protobuf:"varint,10,opt,name=index_cursor" json:"index_cursor,omitempty"`
+	LeafCount        *int32  `protobuf:"varint,2,opt,name=leaf_count" json:"leaf_count,omitempty"`
+	NodeCount        *int32  `protobuf:"varint,3,opt,name=node_count" json:"node_count,omitempty"`
+	LeafMax          *int32  `protobuf:"varint,4,opt,name=leaf_max" json:"leaf_max,omitempty"`
+	NodeMax          *int32  `protobuf:"varint,5,opt,name=node_max" json:"node_max,omitempty"`
+	FreeList         []int32 `protobuf:"varint,6,rep,name=free_list" json:"free_list,omitempty"`
+	Size             *int32  `protobuf:"varint,7,opt,name=size" json:"size,omitempty"`
+	Version          *int32  `protobuf:"varint,8,opt,name=version" json:"version,omitempty"`
+	IndexCursor      *int32  `protobuf:"varint,9,opt,name=index_cursor" json:"index_cursor,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
