@@ -390,22 +390,40 @@ func (this *Leaf) delete(key []byte, tree *Btree) bool {
 /*
  * Update
  */
-func update(treenode TreeNode, record *RecordMetaData, tree *Btree) (bool, *int32) {
+func update(treenode TreeNode, record *RecordMetaData, tree *Btree) (rst bool, refer *int32) {
 	if node, ok := treenode.(*Node); ok {
 		clonenode := tree.clonenode(node)
-		return clonenode.update(record, tree), clonenode.Id
+		rst = clonenode.update(record, tree)
+		if rst {
+			refer = clonenode.Id
+			if *tree.info.Root == *node.Id {
+				tree.info.Root = clonenode.Id
+			}
+			mark_dup(*node.Id, tree)
+		}
+		return
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
 		cloneleaf := tree.cloneleaf(leaf)
-		return cloneleaf.update(record, tree), cloneleaf.Id
+		rst = cloneleaf.update(record, tree)
+		if rst {
+			refer = cloneleaf.Id
+			if *tree.info.Root == *leaf.Id {
+				tree.info.Root = cloneleaf.Id
+			}
+			mark_dup(*leaf.Id, tree)
+		}
+		return
 	}
-	return false, nil
+	return
 }
 func (this *Node) update(record *RecordMetaData, tree *Btree) bool {
 	index := this.locate(record.Key)
 	stat, clone := update(tree.nodes[this.Childrens[index]], record, tree)
 	if stat {
 		this.Childrens[index] = *clone
+	} else {
+		remove(*this.Id, tree)
 	}
 	return stat
 }
@@ -418,6 +436,7 @@ func (this *Leaf) update(record *RecordMetaData, tree *Btree) bool {
 			return true
 		}
 	}
+	remove(*this.Id, tree)
 	return false
 }
 /*
