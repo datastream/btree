@@ -317,7 +317,7 @@ func delete(treenode TreeNode, key []byte, tree *Btree) (rst bool, refer *int32)
 		if *node.Id == *tree.info.Root {
 			tree.cloneroot = clonenode.Id
 		}
-		if clonenode.delete(key, tree) {
+		if rst = clonenode.delete(key, tree); rst {
 			if *node.Id == *tree.info.Root {
 				if len(clonenode.Keys) == 0 {
 					tree.info.Root = get_id(clonenode.Childrens[0], tree)
@@ -326,17 +326,19 @@ func delete(treenode TreeNode, key []byte, tree *Btree) (rst bool, refer *int32)
 					tree.info.Root = clonenode.Id
 				}
 			}
-			rst = true
 			dup_id = clonenode.Id
+			mark_dup(*node.Id, tree)
 		}
 	}
 	if leaf, ok := treenode.(*Leaf); ok {
 		cloneleaf := tree.cloneleaf(leaf)
-		rst = cloneleaf.delete(key, tree)
-		if *leaf.Id == *tree.info.Root {
-			tree.info.Root = cloneleaf.Id
+		if rst = cloneleaf.delete(key, tree); rst {
+			if *leaf.Id == *tree.info.Root {
+				tree.info.Root = cloneleaf.Id
+			}
+			dup_id = cloneleaf.Id
+			mark_dup(*leaf.Id, tree)
 		}
-		dup_id = cloneleaf.Id
 	}
 	refer = dup_id
 	return
@@ -362,6 +364,7 @@ func (this *Node) delete(key []byte, tree *Btree) bool {
 		}
 		return true
 	}
+	remove(*this.Id, tree)
 	return false
 }
 func (this *Leaf) delete(key []byte, tree *Btree) bool {
@@ -381,6 +384,7 @@ func (this *Leaf) delete(key []byte, tree *Btree) bool {
 		}
 		return true
 	}
+	remove(*this.Id, tree)
 	return false
 }
 /*
@@ -488,7 +492,7 @@ func (this *Node) mergeleaf(left_id int32, right_id int32, index int, tree *Btre
 		this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
 	}
 	left.Records = append(left.Records, right.Records...)
-	remove(*right.Id, tree)
+	mark_dup(*right.Id, tree)
 }
 func (this *Node) mergenode(left_id int32, right_id int32, index int, tree *Btree) {
 	left_node := get_node(left_id, tree)
@@ -500,7 +504,7 @@ func (this *Node) mergenode(left_id int32, right_id int32, index int, tree *Btre
 	left_node.Childrens = append(left_node.Childrens, right_node.Childrens...)
 	this.Keys = append(this.Keys[:index],this.Keys[index+1:]...)
 	this.Childrens = append(this.Childrens[:index+1], this.Childrens[index+2:]...)
-	remove(*right_node.Id, tree)
+	mark_dup(*right_node.Id, tree)
 	if len(left_node.Keys) > int(*tree.info.NodeMax) {
 		key, left, right := left_node.split(tree)
 		this.insert_once(key, *left, *right, tree)
