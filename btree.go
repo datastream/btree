@@ -110,7 +110,6 @@ func (this *Btree) Dump(filename string) error {
 	this.stat = 1
 	snapversion := *this.info.Version
 	size := len(this.nodes)
-	this.Unlock()
 	file, err := os.OpenFile(filename + "_" + strconv.Itoa(int(snapversion)), os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0644)
 	defer file.Close()
 	if err != nil {
@@ -118,14 +117,29 @@ func (this *Btree) Dump(filename string) error {
 		return err
 	}
 	fb := bufio.NewWriterSize(file, 1024)
+	data, err := proto.Marshal(this.info)
+	this.Unlock()
+	// proto.MarshalText(fb, tree.info)
+	if err != nil {
+		log.Fatal("encode tree info error ",err)
+	} else {
+		fb.Write(encodefix32(uint64(len(data))))
+		_, err = fb.Write(data)
+		if err != nil {
+			log.Fatal("write file error", err,"at version", snapversion)
+			return err
+		}
+	}
 	for i := 0; i < size; i++ {
 		if leaf, ok := this.nodes[i].(*LeafMetaData); ok {
 			if *leaf.Version <= snapversion {
 				data, err := proto.Marshal(leaf)
+				// proto.MarshalText(fb, leaf)
 				if err != nil {
 					log.Fatal("encode error ",i)
 				} else {
-					_, err := fb.Write(data)
+					fb.Write(encodefix32(uint64(len(data))))
+					_, err = fb.Write(data)
 					if err != nil {
 						log.Fatal("write file error", err,"at version", snapversion)
 						return err
@@ -136,10 +150,12 @@ func (this *Btree) Dump(filename string) error {
 		if node, ok := this.nodes[i].(*NodeMetaData); ok {
 			if *node.Version <= snapversion {
 				data, err := proto.Marshal(node)
+				// proto.MarshalText(fb, node)
 				if err != nil {
 					log.Fatal("encode error ",i, err)
 				} else {
-					_, err := fb.Write(data)
+					fb.Write(encodefix32(uint64(len(data))))
+					_, err = fb.Write(data)
 					if err != nil {
 						log.Fatal("write file error", err, "at version", snapversion)
 						return err
@@ -634,4 +650,20 @@ func (this *Btree)gc() {
 			break
 		}
 	}
+}
+func encodefix32(x uint64) []byte {
+	var p []byte
+	p = append(p,
+                uint8(x),
+                uint8(x>>8),
+                uint8(x>>16),
+                uint8(x>>24))
+        return p
+}
+func decodefixed32(num []byte)(x uint64) {
+        x = uint64(num[0])
+        x |= uint64(num[1]) << 8
+        x |= uint64(num[2]) << 16
+        x |= uint64(num[3]) << 24
+        return
 }
