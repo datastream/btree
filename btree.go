@@ -123,6 +123,7 @@ func (this *Btree) Dump(filename string) error {
 	if err != nil {
 		log.Fatal("encode tree info error ",err)
 	} else {
+		fb.Write(encodefix32(uint64(1)))
 		fb.Write(encodefix32(uint64(len(data))))
 		_, err = fb.Write(data)
 		if err != nil {
@@ -138,6 +139,7 @@ func (this *Btree) Dump(filename string) error {
 				if err != nil {
 					log.Fatal("encode error ",i)
 				} else {
+					fb.Write(encodefix32(uint64(3)))
 					fb.Write(encodefix32(uint64(len(data))))
 					_, err = fb.Write(data)
 					if err != nil {
@@ -154,6 +156,7 @@ func (this *Btree) Dump(filename string) error {
 				if err != nil {
 					log.Fatal("encode error ",i, err)
 				} else {
+					fb.Write(encodefix32(uint64(2)))
 					fb.Write(encodefix32(uint64(len(data))))
 					_, err = fb.Write(data)
 					if err != nil {
@@ -182,7 +185,6 @@ func (this *Btree) newleaf() int32 {
 	var id int32
 	*this.info.LeafCount ++
 	leaf := new(LeafMetaData)
-	leaf.State = proto.Int32(0)
 	if len(this.info.FreeList) > 0 {
 		id = this.info.FreeList[len(this.info.FreeList)-1]
 		this.info.FreeList = this.info.FreeList[:len(this.info.FreeList)-1]
@@ -203,7 +205,6 @@ func (this *Btree) newnode() int32 {
 	var id int32
 	*this.info.NodeCount ++
 	node := new(NodeMetaData)
-	node.State = proto.Int32(0)
 	if len(this.info.FreeList) > 0 {
 		id = this.info.FreeList[len(this.info.FreeList)-1]
 		this.info.FreeList = this.info.FreeList[:len(this.info.FreeList)-1]
@@ -557,12 +558,10 @@ func remove(index int32, tree *Btree) {
 }
 func mark_dup(index int32, tree *Btree) {
 	if tree.stat == 1 {
-		if node, ok := tree.nodes[index].(*NodeMetaData); ok {
-			node.State = proto.Int32(1)
+		if _, ok := tree.nodes[index].(*NodeMetaData); ok {
 			*tree.info.NodeCount --
 		}
-		if leaf, ok := tree.nodes[index].(*LeafMetaData); ok {
-			leaf.State = proto.Int32(1)
+		if _, ok := tree.nodes[index].(*LeafMetaData); ok {
 			*tree.info.LeafCount --
 		}
 		tree.dupnodelist = append(tree.dupnodelist, index)

@@ -15,15 +15,13 @@ message NodeMetaData
   optional int32 id = 1;
   repeated int32 childrens = 2;
   repeated bytes keys = 3;
-  optional int32 state = 4;
-  optional int32 version = 5;
+  optional int32 version = 4;
 }
 message LeafMetaData
 {
   optional int32 id = 1;
   repeated RecordMetaData records = 2;
-  optional int32 state = 3;
-  optional int32 version = 4;
+  optional int32 version = 3;
 }
 message RecordMetaData
 {

@@ -30,8 +30,7 @@ type NodeMetaData struct {
 	Id               *int32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	Childrens        []int32  `protobuf:"varint,2,rep,name=childrens" json:"childrens,omitempty"`
 	Keys             [][]byte `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
-	State            *int32   `protobuf:"varint,4,opt,name=state" json:"state,omitempty"`
-	Version          *int32   `protobuf:"varint,5,opt,name=version" json:"version,omitempty"`
+	Version          *int32   `protobuf:"varint,4,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
@@ -41,8 +40,7 @@ func (this *NodeMetaData) String() string { return proto.CompactTextString(this)
 type LeafMetaData struct {
 	Id               *int32            `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	Records          []*RecordMetaData `protobuf:"bytes,2,rep,name=records" json:"records,omitempty"`
-	State            *int32            `protobuf:"varint,3,opt,name=state" json:"state,omitempty"`
-	Version          *int32            `protobuf:"varint,4,opt,name=version" json:"version,omitempty"`
+	Version          *int32            `protobuf:"varint,3,opt,name=version" json:"version,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
 
