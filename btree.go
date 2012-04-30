@@ -7,12 +7,18 @@ import (
 	"bufio"
 	"strconv"
 	"os"
+	"io"
 	"code.google.com/p/goprotobuf/proto"
 )
 
 const SIZE = 1<<10
 const LEAFSIZE = 1 << 5
 const NODESIZE = 1 << 6
+
+var (
+	NODE = 1
+	LEAF = 2
+)
 
 type Btree struct {
 	info *BtreeMetaData
@@ -21,7 +27,6 @@ type Btree struct {
 	stat int
 	cloneroot *int32
 	dupnodelist []int32
-	current_version int32
 }
 type TreeNode interface {
 	insert(record *RecordMetaData, tree *Btree) bool
@@ -34,7 +39,6 @@ func NewBtree() *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
 	tree.stat = 0
-	tree.current_version = 0
 	tree.info = &BtreeMetaData{
 	Size: proto.Int32(SIZE),
 	LeafMax:  proto.Int32(LEAFSIZE),
@@ -52,7 +56,6 @@ func NewBtreeSize(leafsize uint32, nodesize uint32) *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
 	tree.stat = 0
-	tree.current_version = 0
 	tree.info = &BtreeMetaData{
 	Size: proto.Int32(SIZE),
 	LeafMax:  proto.Int32(LEAFSIZE),
@@ -116,17 +119,15 @@ func (this *Btree) Dump(filename string) error {
 		log.Fatal("file open failed ", filename , "version " ,snapversion, err)
 		return err
 	}
-	fb := bufio.NewWriterSize(file, 1024)
+	fb := bufio.NewWriterSize(file, 1024*1024)
 	data, err := proto.Marshal(this.info)
 	this.Unlock()
 	// proto.MarshalText(fb, tree.info)
 	if err != nil {
 		log.Fatal("encode tree info error ",err)
 	} else {
-		fb.Write(encodefix32(uint64(1)))
-		fb.Write(encodefix32(uint64(len(data))))
-		_, err = fb.Write(data)
-		if err != nil {
+		fb.Write(encodefixed32(uint64(len(data))))
+		if _, err = fb.Write(data); err != nil {
 			log.Fatal("write file error", err,"at version", snapversion)
 			return err
 		}
@@ -134,15 +135,14 @@ func (this *Btree) Dump(filename string) error {
 	for i := 0; i < size; i++ {
 		if leaf, ok := this.nodes[i].(*LeafMetaData); ok {
 			if *leaf.Version <= snapversion {
-				data, err := proto.Marshal(leaf)
 				// proto.MarshalText(fb, leaf)
-				if err != nil {
+				if data, err := proto.Marshal(leaf); err != nil {
 					log.Fatal("encode error ",i)
+					return err
 				} else {
-					fb.Write(encodefix32(uint64(3)))
-					fb.Write(encodefix32(uint64(len(data))))
-					_, err = fb.Write(data)
-					if err != nil {
+					fb.Write(encodefixed32(uint64(LEAF)))
+					fb.Write(encodefixed32(uint64(len(data))))
+					if _, err = fb.Write(data); err != nil {
 						log.Fatal("write file error", err,"at version", snapversion)
 						return err
 					}
@@ -151,15 +151,13 @@ func (this *Btree) Dump(filename string) error {
 		}
 		if node, ok := this.nodes[i].(*NodeMetaData); ok {
 			if *node.Version <= snapversion {
-				data, err := proto.Marshal(node)
 				// proto.MarshalText(fb, node)
-				if err != nil {
+				if data, err := proto.Marshal(node); err != nil {
 					log.Fatal("encode error ",i, err)
 				} else {
-					fb.Write(encodefix32(uint64(2)))
-					fb.Write(encodefix32(uint64(len(data))))
-					_, err = fb.Write(data)
-					if err != nil {
+					fb.Write(encodefixed32(uint64(NODE)))
+					fb.Write(encodefixed32(uint64(len(data))))
+					if _, err = fb.Write(data); err != nil {
 						log.Fatal("write file error", err, "at version", snapversion)
 						return err
 					}
@@ -167,8 +165,7 @@ func (this *Btree) Dump(filename string) error {
 			}
 		}
 	}
-	err = fb.Flush()
-	if err != nil {
+	if err = fb.Flush(); err != nil {
 		log.Fatal("file flush failed ", filename , "version " ,snapversion, err)
 		return err
 	}
@@ -177,6 +174,68 @@ func (this *Btree) Dump(filename string) error {
 	this.stat = 0
 	this.Unlock()
 	return nil
+}
+func Restore(filename string)(tree *Btree, err error) {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		log.Fatal("file open failed ", filename , err)
+		return
+	}
+	tree = new(Btree)
+	tree.nodes = make([]TreeNode, SIZE)
+	tree.stat = 0
+	reader := bufio.NewReaderSize(file, 1024*1024*10)
+	var size int
+	buf := make([]byte, 4)
+	if size, err = reader.Read(buf); err != nil {
+		return
+	}
+	data_length := int(decodefixed32(buf))
+	data_record := make([]byte, data_length)
+	if size, err = reader.Read(data_record); err != nil || size != data_length {
+		log.Fatal("file uncorrect", err)
+		return
+	}
+	tree.info = &BtreeMetaData{}
+	proto.Unmarshal(data_record, tree.info)
+	tree.nodes = make([]TreeNode, *tree.info.Size)
+	for {
+		if size, err = reader.Read(buf); err != nil || size != 4 {
+			log.Println("failed to read data type ", err, size)
+			break
+		}
+		data_type := int(decodefixed32(buf))
+
+		if size, err = reader.Read(buf); err != nil || size != 4 {
+			log.Println("failed to read data length ", err, size, data_type)
+			break
+		}
+		data_length := int(decodefixed32(buf))
+
+		data_record := make([]byte, data_length)
+		if size, err = reader.Read(data_record); err != nil || size != data_length {
+			log.Println("failed to read data record ", err, size, data_length)
+			break
+		}
+
+		switch data_type {
+		case NODE: {
+				node := &NodeMetaData{}
+				proto.Unmarshal(data_record, node)
+				tree.nodes[*node.Id] = node
+			}
+		case LEAF: {
+				leaf := &LeafMetaData{}
+				proto.Unmarshal(data_record, leaf)
+				tree.nodes[*leaf.Id] = leaf
+			}
+		}
+	}
+	if err == io.EOF {
+		err = nil
+	}
+	return
 }
 /*
  * alloc leaf/node
@@ -650,7 +709,7 @@ func (this *Btree)gc() {
 		}
 	}
 }
-func encodefix32(x uint64) []byte {
+func encodefixed32(x uint64) []byte {
 	var p []byte
 	p = append(p,
                 uint8(x),
