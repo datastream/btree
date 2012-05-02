@@ -1,7 +1,8 @@
-# Btree library
-It was wrote in golang.
+Btree library
+cow btree in golang
 
-## API
+API
+
 NewBtree()/NewBtreeSize()
 create new btree
 
@@ -17,7 +18,13 @@ Delete a record, rst is a bool chan. if delete success, it return true
 btree.Search(key, rst)
 Search a record, rst is a []byte chan. if find success, it return value
 
-## TODO
+btree.Dump(filename)
+write btree data into disk.
+
+btree.Restore(filename)
+read btree info from disk
+
+TODO
 1. add support data dump api
 2. test case/bugfix
 3. maybe support parallel btree
