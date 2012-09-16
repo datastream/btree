@@ -1,3 +1,5 @@
+package btree;
+
 message BtreeMetaData
 {
   optional int32 root = 1;
@@ -10,21 +12,18 @@ message BtreeMetaData
   optional int32 version = 8;
   optional int32 index_cursor = 9;
 }
-message NodeMetaData
+message IndexMetaData
 {
   optional int32 id = 1;
-  repeated int32 childrens = 2;
-  repeated bytes keys = 3;
-  optional int32 version = 4;
+  optional int32 version = 2;
 }
-message LeafMetaData
+message NodeRecordMetaData
 {
-  optional int32 id = 1;
-  repeated RecordMetaData records = 2;
-  optional int32 version = 3;
+  repeated int32 childrens = 1;
+  repeated bytes keys = 2;
 }
-message RecordMetaData
+message LeafRecordMetaData
 {
-  optional bytes key = 1;
-  optional bytes value = 2;
+  repeated bytes keys = 1;
+  repeated bytes values = 2;
 }
