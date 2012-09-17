@@ -144,6 +144,7 @@ func delete(treenode TreeNode, key []byte, tree *Btree) (rst bool, refer int32) 
 	refer = dup_id
 	return
 }
+// delete in cloned node/leaf
 func (this *Node) delete(key []byte, tree *Btree) bool {
 	index := this.locate(key)
 	rst, refer := delete(tree.nodes[this.Childrens[index]], key, tree)
@@ -250,10 +251,10 @@ func (this *Leaf) split(tree *Btree) (key []byte, left, right int32) {
 	newleaf := get_leaf(tree.newleaf(), tree)
 	mid := tree.GetLeafMax() / 2
 	newleaf.Values = make([][]byte, len(this.Values[mid:]))
-	newleaf.Keys = make([][]byte, len(this.Keys[mid:]))
 	copy(newleaf.Values, this.Values[mid:])
-	copy(newleaf.Keys, this.Keys[mid:])
+	newleaf.Keys = make([][]byte, len(this.Keys[mid:]))
 	this.Values = this.Values[:mid]
+	copy(newleaf.Keys, this.Keys[mid:])
 	this.Keys = this.Keys[:mid]
 	left = this.GetId()
 	right = newleaf.GetId()
@@ -276,7 +277,7 @@ func (this *Node) split(tree *Btree) (key []byte, left, right int32) {
 }
 
 /*
- * insert key into tree node
+ * Insert key into tree node
  */
 func (this *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btree) {
 	index := this.locate(key)
@@ -446,20 +447,4 @@ func (this *Btree) gc() {
 			break
 		}
 	}
-}
-func encodefixed32(x uint64) []byte {
-	var p []byte
-	p = append(p,
-		uint8(x),
-		uint8(x>>8),
-		uint8(x>>16),
-		uint8(x>>24))
-	return p
-}
-func decodefixed32(num []byte) (x uint64) {
-	x = uint64(num[0])
-	x |= uint64(num[1]) << 8
-	x |= uint64(num[2]) << 16
-	x |= uint64(num[3]) << 24
-	return
 }

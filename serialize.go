@@ -200,3 +200,20 @@ func read_buf(data_length int, reader *bufio.Reader) ([]byte, error) {
 	}
 	return data_record, err
 }
+
+func encodefixed32(x uint64) []byte {
+        var p []byte
+        p = append(p,
+                uint8(x),
+                uint8(x>>8),
+                uint8(x>>16),
+                uint8(x>>24))
+        return p
+}
+func decodefixed32(num []byte) (x uint64) {
+        x = uint64(num[0])
+        x |= uint64(num[1]) << 8
+        x |= uint64(num[2]) << 16
+        x |= uint64(num[3]) << 24
+        return
+}
