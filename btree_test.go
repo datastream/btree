@@ -1,7 +1,7 @@
 package btree_test
 
 import (
-	"../btree"
+	"github.com/datastream/btree"
 	"strconv"
 	"testing"
 )
