@@ -144,6 +144,7 @@ func delete(treenode TreeNode, key []byte, tree *Btree) (rst bool, refer int32) 
 	refer = dup_id
 	return
 }
+
 // delete in cloned node/leaf
 func (this *Node) delete(key []byte, tree *Btree) bool {
 	index := this.locate(key)
