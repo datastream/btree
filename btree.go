@@ -79,43 +79,6 @@ func NewBtreeSize(leafsize uint32, nodesize uint32) *Btree {
 	return tree
 }
 
-/*
- * alloc leaf/node
- */
-func (this *Btree) GenrateId() int32 {
-	var id int32
-	if len(this.FreeList) > 0 {
-		id = this.FreeList[len(this.FreeList)-1]
-		this.FreeList = this.FreeList[:len(this.FreeList)-1]
-	} else {
-		if this.GetIndexCursor() >= this.GetSize() {
-			this.nodes = append(this.nodes, make([]TreeNode, SIZE)...)
-			*this.Size += int32(SIZE)
-		}
-		id = this.GetIndexCursor()
-		*this.IndexCursor++
-	}
-	return id
-}
-
-func (this *Btree) newleaf() int32 {
-	*this.LeafCount++
-	leaf := &Leaf{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.GenrateId()), Version: proto.Int32(this.GetVersion())},
-	}
-	this.nodes[leaf.GetId()] = leaf
-	return leaf.GetId()
-}
-
-func (this *Btree) newnode() int32 {
-	*this.NodeCount++
-	node := &Node{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.GenrateId()), Version: proto.Int32(this.GetVersion())},
-	}
-	this.nodes[node.GetId()] = node
-	return node.GetId()
-}
-
 func (this *Btree) Insert(record *Record, rst chan bool) {
 	this.Lock()
 	defer this.Unlock()
