@@ -4,80 +4,39 @@ import (
 	"bytes"
 )
 
-/*
- * Insert
- */
-func insert(treenode TreeNode, record *Record, tree *Btree) (rst, split bool, key []byte, left, right, refer int32) {
-	var dup_id int32
-	if node, ok := treenode.(*Node); ok {
-		clonenode := tree.clonenode(node)
-		rst = clonenode.insert(record, tree)
-		if len(clonenode.Keys) > int(tree.GetNodeMax()) {
-			key, left, right = clonenode.split(tree)
-			if node.GetId() == tree.GetRoot() {
-				tnode := get_node(tree.newnode(), tree)
-				tnode.insert_once(key, left, right, tree)
-				tree.Root = tnode.Id
-			} else {
-				split = true
-			}
-		}
-		if rst {
-			if node.GetId() == tree.GetRoot() {
-				tree.Root = clonenode.Id
-			}
-			dup_id = clonenode.GetId()
-			mark_dup(node.GetId(), tree)
-		}
-	}
-	if leaf, ok := treenode.(*Leaf); ok {
-		cloneleaf := tree.cloneleaf(leaf)
-		rst = cloneleaf.insert(record, tree)
-		if len(cloneleaf.Values) > int(tree.GetLeafMax()) {
-			key, left, right = cloneleaf.split(tree)
-			if leaf.GetId() == tree.GetRoot() {
-				tnode := get_node(tree.newnode(), tree)
-				tnode.insert_once(key, left, right, tree)
-				tree.Root = tnode.Id
-			} else {
-				split = true
-			}
-		}
-		if rst {
-			if leaf.GetId() == tree.GetRoot() {
-				tree.Root = cloneleaf.Id
-			}
-			dup_id = cloneleaf.GetId()
-			mark_dup(leaf.GetId(), tree)
-		}
-	}
-	refer = dup_id
-	return
-}
-func (this *Node) insert(record *Record, tree *Btree) bool {
+//insert
+func (this *Node) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
 	index := this.locate(record.Key)
-	rst, split, key, left, right, refer := insert(tree.nodes[this.Childrens[index]], record, tree)
-	if rst {
-		this.Childrens[index] = refer
-		if split {
-			this.insert_once(key, left, right, tree)
+	if rst, clone_treenode := tree.nodes[this.Childrens[index]].insert_record(record, tree); rst {
+		clone_node, _ := this.clone(tree).(*Node)
+		clone_node.Childrens[index] = *get_treenode_id(clone_treenode)
+		if get_key_size(clone_treenode) > int(tree.GetNodeMax()) {
+			key, left, right := clone_treenode.split(tree)
+			clone_node.insert_once(key, left, right, tree)
 		}
-	} else {
-		remove(this.GetId(), tree)
+		tree.nodes[*get_treenode_id(clone_treenode)] = clone_treenode
+		mark_dup(*this.Id, tree)
+		return true, clone_node
 	}
-	return rst
+	return false, nil
 }
-func (this *Leaf) insert(record *Record, tree *Btree) bool {
+func (this *Leaf) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
 	index := this.locate(record.Key)
 	if index > 0 {
 		if bytes.Compare(this.Keys[index-1], record.Key) == 0 {
-			remove(this.GetId(), tree)
-			return false
+			return false, nil
 		}
 	}
-	this.Keys = append(this.Keys[:index], append([][]byte{record.Key}, this.Keys[index:]...)...)
-	this.Values = append(this.Values[:index], append([][]byte{record.Value}, this.Values[index:]...)...)
-	return true
+	var clone_leaf *Leaf
+	if tree.GetRoot() == *this.Id && len(this.Keys) == 0 {
+		clone_leaf = this
+	} else {
+		clone_leaf, _ = this.clone(tree).(*Leaf)
+	}
+	clone_leaf.Keys = append(clone_leaf.Keys[:index], append([][]byte{record.Key}, clone_leaf.Keys[index:]...)...)
+	clone_leaf.Values = append(clone_leaf.Values[:index], append([][]byte{record.Value}, clone_leaf.Values[index:]...)...)
+	mark_dup(*this.Id, tree)
+	return true, clone_leaf
 }
 
 /*

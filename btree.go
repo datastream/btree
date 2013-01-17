@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// if btree's stat >0, btree is inserting/deleteing
 type Btree struct {
 	BtreeMetaData
 	sync.Mutex
@@ -38,13 +39,6 @@ const (
 	LEAF = 2
 )
 
-type TreeNode interface {
-	insert(record *Record, tree *Btree) bool
-	delete(key []byte, tree *Btree) bool
-	update(recode *Record, tree *Btree) bool
-	search(key []byte, tree *Btree) []byte
-}
-
 func NewBtree() *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
@@ -58,7 +52,9 @@ func NewBtree() *Btree {
 		IndexCursor: proto.Int32(0),
 	}
 	tree.Version = proto.Int32(0)
-	tree.Root = proto.Int32(tree.newleaf())
+	leaf := tree.newleaf()
+	tree.Root = proto.Int32(leaf.GetId())
+	tree.nodes[*tree.Root] = leaf
 	return tree
 }
 
@@ -75,7 +71,9 @@ func NewBtreeSize(leafsize uint32, nodesize uint32) *Btree {
 		IndexCursor: proto.Int32(0),
 	}
 	tree.Version = proto.Int32(0)
-	tree.Root = proto.Int32(tree.newleaf())
+	leaf := tree.newleaf()
+	tree.Root = proto.Int32(leaf.GetId())
+	tree.nodes[*tree.Root] = leaf
 	return tree
 }
 
@@ -86,7 +84,20 @@ func (this *Btree) Insert(record *Record, rst chan bool) {
 		*this.Version++
 		this.stat++
 	}
-	stat, _, _, _, _, _ := insert(this.nodes[this.GetRoot()], record, this)
+	stat, clone_treenode := this.nodes[this.GetRoot()].insert_record(record, this)
+	if stat {
+		mark_dup(this.GetRoot(), this)
+		if get_key_size(clone_treenode) > int(this.GetNodeMax()) {
+			new_node := this.newnode()
+			key, left, right := clone_treenode.split(this)
+			new_node.insert_once(key, left, right, this)
+			this.Root = get_treenode_id(new_node)
+			this.nodes[int(this.GetRoot())] = new_node
+		} else {
+			this.Root = get_treenode_id(clone_treenode)
+			this.nodes[int(this.GetRoot())] = clone_treenode
+		}
+	}
 	rst <- stat
 }
 
@@ -97,12 +108,27 @@ func (this *Btree) Delete(key []byte, rst chan bool) {
 		*this.Version++
 		this.stat++
 	}
-	stat, _ := delete(this.nodes[this.GetRoot()], key, this)
+	stat, clone_treenode, new_key := this.nodes[this.GetRoot()].delete_record(key, this)
+	if stat {
+		mark_dup(this.GetRoot(), this)
+		if clone_node, ok := clone_treenode.(*Node); ok {
+			clone_node.replace(key, new_key)
+			if len(clone_node.Keys) == 0 {
+				this.Root = get_id(clone_node.Childrens[0], this)
+			} else {
+				this.Root = clone_node.Id
+				this.nodes[clone_node.GetId()] = clone_node
+			}
+		} else {
+			clone_leaf, _ := clone_treenode.(*Leaf)
+			this.Root = clone_leaf.Id
+		}
+	}
 	rst <- stat
 }
 
 func (this *Btree) Search(key []byte, rst chan []byte) {
-	rst <- search(this.nodes[this.GetRoot()], key, this)
+	rst <- this.nodes[this.GetRoot()].search_record(key, this)
 }
 
 func (this *Btree) Update(record *Record, rst chan bool) {
@@ -112,6 +138,11 @@ func (this *Btree) Update(record *Record, rst chan bool) {
 		*this.Version++
 		this.stat++
 	}
-	stat, _ := update(this.nodes[this.GetRoot()], record, this)
+	stat, clone_treenode := this.nodes[this.GetRoot()].update_record(record, this)
+	if stat {
+		mark_dup(this.GetRoot(), this)
+		this.Root = get_treenode_id(clone_treenode)
+		this.nodes[int(this.GetRoot())] = clone_treenode
+	}
 	rst <- stat
 }

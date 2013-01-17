@@ -4,25 +4,13 @@ import (
 	"bytes"
 )
 
-/*
- * Search
- */
-func search(treenode TreeNode, key []byte, tree *Btree) []byte {
-	if node, ok := treenode.(*Node); ok {
-		return node.search(key, tree)
-	}
-	if leaf, ok := treenode.(*Leaf); ok {
-		return leaf.search(key, tree)
-	}
-	return nil
-
-}
-func (this *Node) search(key []byte, tree *Btree) []byte {
+// search record
+func (this *Node) search_record(key []byte, tree *Btree) []byte {
 	index := this.locate(key)
-	return search(tree.nodes[this.Childrens[index]], key, tree)
+	return tree.nodes[this.Childrens[index]].search_record(key, tree)
 }
 
-func (this *Leaf) search(key []byte, tree *Btree) []byte {
+func (this *Leaf) search_record(key []byte, tree *Btree) []byte {
 	index := this.locate(key) - 1
 	if index >= 0 {
 		if bytes.Compare(this.Keys[index], key) == 0 {
