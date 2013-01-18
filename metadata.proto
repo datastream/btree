@@ -9,13 +9,13 @@ message BtreeMetaData
   optional int32 node_max = 5;
   repeated int32 free_list = 6;
   optional int32 size = 7;
-  optional int32 version = 8;
+  optional uint32 version = 8;
   optional int32 index_cursor = 9;
 }
 message IndexMetaData
 {
   optional int32 id = 1;
-  optional int32 version = 2;
+  optional uint32 version = 2;
 }
 message NodeRecordMetaData
 {

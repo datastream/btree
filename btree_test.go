@@ -24,7 +24,7 @@ func TestInsert(t *testing.T) {
 }
 func TestSearch(t *testing.T) {
 	tree := btree.NewBtreeSize(2,2)
-	size := 100
+	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
 		rd := &btree.Record{
@@ -45,7 +45,7 @@ func TestSearch(t *testing.T) {
 }
 func TestUpdate(t *testing.T) {
 	tree := btree.NewBtreeSize(2,2)
-	size := 100
+	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
 		rd := &btree.Record{
@@ -144,31 +144,6 @@ func BenchmarkBtreeUpdate(t *testing.B) {
 		}
 	}
 }
-func BenchmarkBtreeDeleteCheck(t *testing.B) {
-	size := 100000
-	if tree, err := btree.Restore("treedump_0"); err == nil {
-		for i := 0; i < size; i++ {
-			q_rst := make(chan []byte)
-			go tree.Search([]byte(strconv.Itoa(i)), q_rst)
-			rst := <-q_rst
-			if rst == nil {
-				t.Fatal("Find Failed", i)
-			}
-			d_rst := make(chan bool)
-			go tree.Delete([]byte(strconv.Itoa(i)), d_rst)
-			stat := <-d_rst
-			q_rst = make(chan []byte)
-			go tree.Search([]byte(strconv.Itoa(i)), q_rst)
-			rst = <-q_rst
-			if rst != nil {
-				t.Fatal("Find deleted key", i)
-			}
-			if !stat {
-				t.Fatal("delete Failed", i)
-			}
-		}
-	}
-}
 func BenchmarkBtreeDelete(t *testing.B) {
 	size := 100000
 	if tree, err := btree.Restore("treedump_0"); err == nil {
@@ -181,12 +156,4 @@ func BenchmarkBtreeDelete(t *testing.B) {
 			}
 		}
 	}
-}
-
-func BenchmarkBtree(t *testing.B) {
-	BenchmarkBtreeInsert(t)
-	BenchmarkBtreeSearch(t)
-	BenchmarkBtreeUpdate(t)
-	BenchmarkBtreeDelete(t)
-	BenchmarkBtreeDeleteCheck(t)
 }

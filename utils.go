@@ -12,6 +12,7 @@ type TreeNode interface {
 	search_record(key []byte, tree *Btree) []byte
 	clone(tree *Btree) TreeNode
 	split(tree *Btree) (key []byte, left, right int32)
+	locate(key []byte) int
 }
 
 // genrate node/leaf id
@@ -35,7 +36,7 @@ func (this *Btree) genrateid() int32 {
 func (this *Btree) newleaf() *Leaf {
 	*this.LeafCount++
 	leaf := &Leaf{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Int32(this.GetVersion())},
+		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Uint32(this.GetVersion())},
 	}
 	return leaf
 }
@@ -44,7 +45,7 @@ func (this *Btree) newleaf() *Leaf {
 func (this *Btree) newnode() *Node {
 	*this.NodeCount++
 	node := &Node{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Int32(this.GetVersion())},
+		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Uint32(this.GetVersion())},
 	}
 	return node
 }
@@ -64,13 +65,7 @@ func remove(id int32, tree *Btree) {
 
 //mark node/leaf duplicated
 func mark_dup(id int32, tree *Btree) {
-	if tree.stat == 1 {
-		if _, ok := tree.nodes[id].(*Node); ok {
-			*tree.NodeCount--
-		}
-		if _, ok := tree.nodes[id].(*Leaf); ok {
-			*tree.LeafCount--
-		}
+	if tree.is_syning {
 		tree.dupnodelist = append(tree.dupnodelist, id)
 	} else {
 		remove(id, tree)
@@ -185,7 +180,7 @@ func (this *Leaf) clone(tree *Btree) TreeNode {
 //free dupnode
 func (this *Btree) gc() {
 	for {
-		if len(this.dupnodelist) > 0 && this.stat == 0 {
+		if len(this.dupnodelist) > 0 && !this.is_syning {
 			id := this.dupnodelist[len(this.dupnodelist)-1]
 			this.dupnodelist = this.dupnodelist[:len(this.dupnodelist)-1]
 			remove(id, this)

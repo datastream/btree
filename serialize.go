@@ -11,7 +11,7 @@ import (
 
 func (this *Btree) Dump(filename string) error {
 	this.Lock()
-	this.stat = 1
+	this.is_syning = true
 	snapversion := this.GetVersion()
 	size := len(this.nodes)
 	fd, err := os.OpenFile(filename+"_"+strconv.Itoa(int(snapversion)), os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0644)
@@ -67,7 +67,7 @@ func (this *Btree) Dump(filename string) error {
 	}
 	go this.gc()
 	this.Lock()
-	this.stat = 0
+	this.is_syning = false
 	this.Unlock()
 	return nil
 }
@@ -115,7 +115,7 @@ func Restore(filename string) (tree *Btree, err error) {
 	}
 	tree = new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
-	tree.stat = 0
+	tree.is_syning = false
 	reader := bufio.NewReader(fd)
 	buf, err := read_buf(4, reader)
 	if err != nil {

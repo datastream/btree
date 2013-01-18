@@ -8,13 +8,13 @@ import (
 func (this *Node) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
 	index := this.locate(record.Key)
 	if rst, clone_treenode := tree.nodes[this.Childrens[index]].insert_record(record, tree); rst {
+		tree.nodes[*get_treenode_id(clone_treenode)] = clone_treenode
 		clone_node, _ := this.clone(tree).(*Node)
 		clone_node.Childrens[index] = *get_treenode_id(clone_treenode)
 		if get_key_size(clone_treenode) > int(tree.GetNodeMax()) {
 			key, left, right := clone_treenode.split(tree)
 			clone_node.insert_once(key, left, right, tree)
 		}
-		tree.nodes[*get_treenode_id(clone_treenode)] = clone_treenode
 		mark_dup(*this.Id, tree)
 		return true, clone_node
 	}
