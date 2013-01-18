@@ -3,6 +3,7 @@ package btree
 import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
+	"time"
 )
 
 type TreeNode interface {
@@ -68,7 +69,13 @@ func mark_dup(id int32, tree *Btree) {
 	if tree.is_syning {
 		tree.dupnodelist = append(tree.dupnodelist, id)
 	} else {
-		remove(id, tree)
+		if len(tree.dupnodelist) == 0 {
+			tree.dupnodelist = append(tree.dupnodelist, id)
+		} else if int(*tree.NodeCount+*tree.LeafCount)/len(tree.dupnodelist) < 10 {
+			remove(id, tree)
+		} else {
+			tree.dupnodelist = append(tree.dupnodelist, id)
+		}
 	}
 }
 
@@ -179,13 +186,16 @@ func (this *Leaf) clone(tree *Btree) TreeNode {
 
 //free dupnode
 func (this *Btree) gc() {
+	ticker := time.NewTicker(time.Second)
 	for {
 		if len(this.dupnodelist) > 0 && !this.is_syning {
+			this.Lock()
 			id := this.dupnodelist[len(this.dupnodelist)-1]
 			this.dupnodelist = this.dupnodelist[:len(this.dupnodelist)-1]
 			remove(id, this)
+			this.Unlock()
 		} else {
-			break
+			<-ticker.C
 		}
 	}
 }

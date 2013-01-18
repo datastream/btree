@@ -55,6 +55,7 @@ func NewBtree() *Btree {
 	leaf := tree.newleaf()
 	tree.Root = proto.Int32(leaf.GetId())
 	tree.nodes[*tree.Root] = leaf
+	go tree.gc()
 	return tree
 }
 
@@ -74,6 +75,7 @@ func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	leaf := tree.newleaf()
 	tree.Root = proto.Int32(leaf.GetId())
 	tree.nodes[*tree.Root] = leaf
+	go tree.gc()
 	return tree
 }
 

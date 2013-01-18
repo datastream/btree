@@ -146,15 +146,16 @@ func BenchmarkBtreeInsert(t *testing.B) {
 			t.Fatal("Insert Failed", i)
 		}
 	}
+	tree.Dump("treedump")
 }
 func BenchmarkBtreeSearch(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_0"); err == nil {
+	if tree, err := btree.Restore("treedump_100000"); err == nil {
 		for i := 0; i < size; i++ {
 			q_rst := make(chan []byte)
 			go tree.Search([]byte(strconv.Itoa(i)), q_rst)
 			rst := <-q_rst
-			if rst == nil {
+			if string(rst) != strconv.Itoa(i) {
 				t.Fatal("Find Failed", i)
 			}
 		}
@@ -162,7 +163,7 @@ func BenchmarkBtreeSearch(t *testing.B) {
 }
 func BenchmarkBtreeUpdate(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_0"); err == nil {
+	if tree, err := btree.Restore("treedump_100000"); err == nil {
 		for i := 0; i < size; i++ {
 			rd := &btree.Record{
 				Key:   []byte(strconv.Itoa(i)),
@@ -179,7 +180,7 @@ func BenchmarkBtreeUpdate(t *testing.B) {
 }
 func BenchmarkBtreeDelete(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_0"); err == nil {
+	if tree, err := btree.Restore("treedump_100000"); err == nil {
 		for i := 0; i < size; i++ {
 			d_rst := make(chan bool)
 			go tree.Delete([]byte(strconv.Itoa(i)), d_rst)
