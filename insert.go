@@ -28,14 +28,15 @@ func (this *Leaf) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
 		}
 	}
 	var clone_leaf *Leaf
-	if tree.GetRoot() == *this.Id && len(this.Keys) == 0 {
+	if len(this.Keys) == 0 {
 		clone_leaf = this
 	} else {
 		clone_leaf, _ = this.clone(tree).(*Leaf)
+		tree.nodes[clone_leaf.GetId()] = clone_leaf
+		mark_dup(*this.Id, tree)
 	}
 	clone_leaf.Keys = append(clone_leaf.Keys[:index], append([][]byte{record.Key}, clone_leaf.Keys[index:]...)...)
 	clone_leaf.Values = append(clone_leaf.Values[:index], append([][]byte{record.Value}, clone_leaf.Values[index:]...)...)
-	mark_dup(*this.Id, tree)
 	return true, clone_leaf
 }
 

@@ -86,7 +86,6 @@ func (this *Btree) Insert(record *Record, rst chan bool) {
 	}
 	stat, clone_treenode := this.nodes[this.GetRoot()].insert_record(record, this)
 	if stat {
-		mark_dup(this.GetRoot(), this)
 		if get_key_size(clone_treenode) > int(this.GetNodeMax()) {
 			new_node := this.newnode()
 			key, left, right := clone_treenode.split(this)
@@ -108,20 +107,15 @@ func (this *Btree) Delete(key []byte, rst chan bool) {
 		*this.Version++
 		this.stat++
 	}
-	stat, clone_treenode, new_key := this.nodes[this.GetRoot()].delete_record(key, this)
+	stat, clone_treenode, _ := this.nodes[this.GetRoot()].delete_record(key, this)
 	if stat {
-		mark_dup(this.GetRoot(), this)
-		if clone_node, ok := clone_treenode.(*Node); ok {
-			clone_node.replace(key, new_key)
-			if len(clone_node.Keys) == 0 {
+		if get_key_size(clone_treenode) == 0 {
+			if clone_node, ok := clone_treenode.(*Node); ok {
 				this.Root = get_id(clone_node.Childrens[0], this)
-			} else {
-				this.Root = clone_node.Id
-				this.nodes[clone_node.GetId()] = clone_node
+				mark_dup(*clone_node.Id, this)
 			}
 		} else {
-			clone_leaf, _ := clone_treenode.(*Leaf)
-			this.Root = clone_leaf.Id
+			this.Root = get_treenode_id(clone_treenode)
 		}
 	}
 	rst <- stat

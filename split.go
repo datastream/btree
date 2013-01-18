@@ -2,34 +2,34 @@ package btree
 
 //split leaf
 func (this *Leaf) split(tree *Btree) (key []byte, left, right int32) {
-	newleaf := tree.newleaf()
+	new_leaf := tree.newleaf()
 	mid := tree.GetLeafMax() / 2
-	newleaf.Values = make([][]byte, len(this.Values[mid:]))
-	copy(newleaf.Values, this.Values[mid:])
-	newleaf.Keys = make([][]byte, len(this.Keys[mid:]))
+	new_leaf.Values = make([][]byte, len(this.Values[mid:]))
+	copy(new_leaf.Values, this.Values[mid:])
+	new_leaf.Keys = make([][]byte, len(this.Keys[mid:]))
 	this.Values = this.Values[:mid]
-	copy(newleaf.Keys, this.Keys[mid:])
+	copy(new_leaf.Keys, this.Keys[mid:])
 	this.Keys = this.Keys[:mid]
 	left = this.GetId()
-	right = newleaf.GetId()
-	key = newleaf.Keys[0]
-	tree.nodes[newleaf.GetId()] = newleaf
+	right = new_leaf.GetId()
+	key = new_leaf.Keys[0]
+	tree.nodes[new_leaf.GetId()] = new_leaf
 	return
 }
 
 //split node
 func (this *Node) split(tree *Btree) (key []byte, left, right int32) {
-	newnode := tree.newnode()
+	new_node := tree.newnode()
 	mid := tree.GetNodeMax() / 2
 	key = this.Keys[mid]
-	newnode.Keys = make([][]byte, len(this.Keys[mid+1:]))
-	copy(newnode.Keys, this.Keys[mid+1:])
+	new_node.Keys = make([][]byte, len(this.Keys[mid+1:]))
+	copy(new_node.Keys, this.Keys[mid+1:])
 	this.Keys = this.Keys[:mid]
-	newnode.Childrens = make([]int32, len(this.Childrens[mid+1:]))
-	copy(newnode.Childrens, this.Childrens[mid+1:])
+	new_node.Childrens = make([]int32, len(this.Childrens[mid+1:]))
+	copy(new_node.Childrens, this.Childrens[mid+1:])
 	this.Childrens = this.Childrens[:mid+1]
 	left = this.GetId()
-	right = newnode.GetId()
-	tree.nodes[newnode.GetId()] = newnode
+	right = new_node.GetId()
+	tree.nodes[new_node.GetId()] = new_node
 	return
 }

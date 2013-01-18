@@ -3,14 +3,15 @@ package btree
 /*
  * merge leaf/node
  */
-func (this *Node) merge_leaf(left_id int32, right_id int32, index int, tree *Btree) {
+func (this *Node) merge_leaf(left_id int32, right_id int32, index int, tree *Btree) int32 {
 	left := get_leaf(left_id, tree)
 	right := get_leaf(right_id, tree)
 	if (len(left.Values) + len(right.Values)) > int(tree.GetLeafMax()) {
-		return
+		return -1
 	}
 	left_clone := left.clone(tree).(*Leaf)
 	id := *get_treenode_id(left_clone)
+	tree.nodes[id] = left_clone
 	this.Childrens[index] = id
 	if index == len(this.Keys) {
 		this.Childrens = this.Childrens[:index]
@@ -23,16 +24,18 @@ func (this *Node) merge_leaf(left_id int32, right_id int32, index int, tree *Btr
 	left_clone.Keys = append(left_clone.Keys, right.Keys...)
 	mark_dup(left_id, tree)
 	mark_dup(right_id, tree)
+	return *left_clone.Id
 }
 
-func (this *Node) merge_node(left_id int32, right_id int32, index int, tree *Btree) {
+func (this *Node) merge_node(left_id int32, right_id int32, index int, tree *Btree) int32 {
 	left := get_node(left_id, tree)
 	right := get_node(right_id, tree)
 	if len(left.Keys)+len(right.Keys) > int(tree.GetNodeMax()) {
-		return
+		return -1
 	}
 	left_clone := left.clone(tree).(*Node)
 	id := *get_treenode_id(left_clone)
+	tree.nodes[id] = left_clone
 	this.Childrens[index] = id
 	left_clone.Keys = append(left_clone.Keys, append([][]byte{this.Keys[index]}, right.Keys...)...)
 	left_clone.Childrens = append(left_clone.Childrens, right.Childrens...)
@@ -44,4 +47,5 @@ func (this *Node) merge_node(left_id int32, right_id int32, index int, tree *Btr
 	}
 	mark_dup(left_id, tree)
 	mark_dup(right_id, tree)
+	return *left_clone.Id
 }
