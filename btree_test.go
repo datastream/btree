@@ -7,7 +7,7 @@ import (
 )
 
 func TestInsert(t *testing.T) {
-	tree := btree.NewBtreeSize(2,2)
+	tree := btree.NewBtreeSize(2, 2)
 	size := 100
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -23,7 +23,7 @@ func TestInsert(t *testing.T) {
 	}
 }
 func TestSearch(t *testing.T) {
-	tree := btree.NewBtreeSize(2,2)
+	tree := btree.NewBtreeSize(2, 2)
 	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -32,7 +32,7 @@ func TestSearch(t *testing.T) {
 			Value: []byte(strconv.Itoa(i)),
 		}
 		go tree.Insert(rd, rst)
-		<- rst
+		<-rst
 	}
 	for i := 0; i < size; i++ {
 		q_rst := make(chan []byte)
@@ -44,7 +44,7 @@ func TestSearch(t *testing.T) {
 	}
 }
 func TestUpdate(t *testing.T) {
-	tree := btree.NewBtreeSize(2,2)
+	tree := btree.NewBtreeSize(2, 2)
 	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -53,7 +53,7 @@ func TestUpdate(t *testing.T) {
 			Value: []byte(strconv.Itoa(i)),
 		}
 		go tree.Insert(rd, rst)
-		<- rst
+		<-rst
 	}
 	for i := 0; i < size; i++ {
 		rd := &btree.Record{
@@ -77,7 +77,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 func TestDelete(t *testing.T) {
-	tree := btree.NewBtreeSize(2,2)
+	tree := btree.NewBtreeSize(2, 2)
 	size := 100
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -86,7 +86,7 @@ func TestDelete(t *testing.T) {
 			Value: []byte(strconv.Itoa(i)),
 		}
 		go tree.Insert(rd, rst)
-		<- rst
+		<-rst
 	}
 	for i := 0; i < size; i++ {
 		d_rst := make(chan bool)

@@ -31,7 +31,7 @@ func (this *Btree) PrintInfo() {
 
 func (this *Btree) PrintTree() {
 	fmt.Println("-----------Tree-------------")
-	for i := 0; i < int(this.GetIndexCursor()); i ++ {
+	for i := 0; i < int(this.GetIndexCursor()); i++ {
 		if node, ok := this.nodes[i].(*Node); ok {
 			node.PrintKeys()
 			node.PrintChildrens()

@@ -29,14 +29,14 @@ func (this *Node) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte
 				left = clone_node.merge_leaf(clone_node.Childrens[index-1], clone_node.Childrens[index], index-1, tree)
 				if index == 1 && t_key == nil {
 					leaf := get_leaf(clone_node.Childrens[0], tree)
-					if leaf != nil && len(leaf.Keys) > 0{
+					if leaf != nil && len(leaf.Keys) > 0 {
 						new_key = leaf.Keys[0]
 					}
 				}
 			} else {
 				left = clone_node.merge_node(clone_node.Childrens[index-1], clone_node.Childrens[index], index-1, tree)
 			}
-			if left >0 {
+			if left > 0 {
 				clone_node.Childrens[index-1] = left
 			}
 		}
