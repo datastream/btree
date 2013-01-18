@@ -104,6 +104,33 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestDump(t *testing.T) {
+	tree := btree.NewBtreeSize(3, 3)
+	size := 100
+	rst := make(chan bool)
+	for i := 0; i < size; i++ {
+		rd := &btree.Record{
+			Key:   []byte(strconv.Itoa(i)),
+			Value: []byte(strconv.Itoa(i)),
+		}
+		go tree.Insert(rd, rst)
+		<-rst
+	}
+	tree.Dump("treedump")
+}
+func TestRestore(t *testing.T) {
+	size := 100
+	if tree, err := btree.Restore("treedump_100"); err == nil {
+		for i := 0; i < size; i++ {
+			q_rst := make(chan []byte)
+			go tree.Search([]byte(strconv.Itoa(i)), q_rst)
+			rst := <-q_rst
+			if string(rst) != strconv.Itoa(i) {
+				t.Fatal("Find Failed", i)
+			}
+		}
+	}
+}
 func BenchmarkBtreeInsert(t *testing.B) {
 	size := 100000
 	tree := btree.NewBtree()
