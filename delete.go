@@ -61,6 +61,9 @@ func (this *Leaf) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte
 		clone_leaf, _ := this.clone(tree).(*Leaf)
 		clone_leaf.Keys = append(clone_leaf.Keys[:index], clone_leaf.Keys[index+1:]...)
 		clone_leaf.Values = append(clone_leaf.Values[:index], clone_leaf.Values[index+1:]...)
+		if this.GetId() == tree.GetRoot() {
+			tree.cloneroot = clone_leaf.GetId()
+		}
 		tree.nodes[clone_leaf.GetId()] = clone_leaf
 		mark_dup(*this.Id, tree)
 		if index == 0 && len(clone_leaf.Keys) > 0 {

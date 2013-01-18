@@ -23,7 +23,7 @@ func TestInsert(t *testing.T) {
 	}
 }
 func TestSearch(t *testing.T) {
-	tree := btree.NewBtreeSize(2, 2)
+	tree := btree.NewBtreeSize(2, 3)
 	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -44,7 +44,7 @@ func TestSearch(t *testing.T) {
 	}
 }
 func TestUpdate(t *testing.T) {
-	tree := btree.NewBtreeSize(2, 2)
+	tree := btree.NewBtreeSize(3, 2)
 	size := 100000
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -77,7 +77,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 func TestDelete(t *testing.T) {
-	tree := btree.NewBtreeSize(2, 2)
+	tree := btree.NewBtreeSize(3, 3)
 	size := 100
 	rst := make(chan bool)
 	for i := 0; i < size; i++ {
@@ -94,6 +94,12 @@ func TestDelete(t *testing.T) {
 		stat := <-d_rst
 		if !stat {
 			t.Fatal("delete Failed", i)
+		}
+		q_rst := make(chan []byte)
+		go tree.Search([]byte(strconv.Itoa(i)), q_rst)
+		rst := <-q_rst
+		if rst != nil {
+			t.Fatal("delete error", t)
 		}
 	}
 }

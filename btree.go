@@ -110,6 +110,8 @@ func (this *Btree) Delete(key []byte, rst chan bool) {
 			if clone_node, ok := clone_treenode.(*Node); ok {
 				this.Root = get_id(clone_node.Childrens[0], this)
 				mark_dup(*clone_node.Id, this)
+			} else {
+				this.Root = get_treenode_id(clone_treenode)
 			}
 		} else {
 			this.Root = get_treenode_id(clone_treenode)
