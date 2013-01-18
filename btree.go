@@ -79,7 +79,7 @@ func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	return tree
 }
 
-func (this *Btree) Insert(record *Record, rst chan bool) {
+func (this *Btree) Insert(record *Record) bool {
 	this.Lock()
 	defer this.Unlock()
 	*this.Version++
@@ -98,10 +98,10 @@ func (this *Btree) Insert(record *Record, rst chan bool) {
 	} else {
 		*this.Version--
 	}
-	rst <- stat
+	return stat
 }
 
-func (this *Btree) Delete(key []byte, rst chan bool) {
+func (this *Btree) Delete(key []byte) bool {
 	this.Lock()
 	defer this.Unlock()
 	*this.Version++
@@ -121,14 +121,14 @@ func (this *Btree) Delete(key []byte, rst chan bool) {
 	} else {
 		*this.Version--
 	}
-	rst <- stat
+	return stat
 }
 
-func (this *Btree) Search(key []byte, rst chan []byte) {
-	rst <- this.nodes[this.GetRoot()].search_record(key, this)
+func (this *Btree) Search(key []byte) []byte {
+	return this.nodes[this.GetRoot()].search_record(key, this)
 }
 
-func (this *Btree) Update(record *Record, rst chan bool) {
+func (this *Btree) Update(record *Record) bool {
 	this.Lock()
 	defer this.Unlock()
 	*this.Version++
@@ -140,5 +140,5 @@ func (this *Btree) Update(record *Record, rst chan bool) {
 	} else {
 		*this.Version--
 	}
-	rst <- stat
+	return stat
 }
