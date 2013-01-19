@@ -4,6 +4,10 @@ This is pure golang btree library. it's copy on write btree.
 
 ## API
 
+### NewRecord(key, value []byte)
+
+create a record
+
 ### NewBtree()
 
 create a btree
