@@ -39,6 +39,12 @@ const (
 	LEAF = 2
 )
 
+//create new record
+func NewRecord(key, value []byte) *Record {
+	return &Record{key, value}
+}
+
+//create new btree
 func NewBtree() *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
@@ -59,6 +65,7 @@ func NewBtree() *Btree {
 	return tree
 }
 
+//create new btree with custom leafsize/nodesize
 func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	tree := new(Btree)
 	tree.nodes = make([]TreeNode, SIZE)
@@ -79,6 +86,7 @@ func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	return tree
 }
 
+//insert
 func (this *Btree) Insert(record *Record) bool {
 	this.Lock()
 	defer this.Unlock()
@@ -101,6 +109,7 @@ func (this *Btree) Insert(record *Record) bool {
 	return stat
 }
 
+//delete
 func (this *Btree) Delete(key []byte) bool {
 	this.Lock()
 	defer this.Unlock()
@@ -124,10 +133,12 @@ func (this *Btree) Delete(key []byte) bool {
 	return stat
 }
 
+//search
 func (this *Btree) Search(key []byte) []byte {
 	return this.nodes[this.GetRoot()].search_record(key, this)
 }
 
+//update
 func (this *Btree) Update(record *Record) bool {
 	this.Lock()
 	defer this.Unlock()
