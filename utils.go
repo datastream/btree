@@ -67,15 +67,10 @@ func remove(id int32, tree *Btree) {
 //mark node/leaf duplicated
 func mark_dup(id int32, tree *Btree) {
 	if tree.is_syning {
+		tree.gc_lock.Lock()
+		defer tree.gc_lock.Unlock()
 		tree.dupnodelist = append(tree.dupnodelist, id)
-	} else {
-		if len(tree.dupnodelist) == 0 {
-			tree.dupnodelist = append(tree.dupnodelist, id)
-		} else if int(*tree.NodeCount+*tree.LeafCount)/len(tree.dupnodelist) < 10 {
-			remove(id, tree)
-		} else {
-			tree.dupnodelist = append(tree.dupnodelist, id)
-		}
+
 	}
 }
 
@@ -184,18 +179,17 @@ func (this *Leaf) clone(tree *Btree) TreeNode {
 	return newleaf
 }
 
-//free dupnode
+//gc dupnodelist
 func (this *Btree) gc() {
-	ticker := time.NewTicker(time.Second)
 	for {
 		if len(this.dupnodelist) > 0 && !this.is_syning {
-			this.Lock()
+			this.gc_lock.Lock()
+			defer this.gc_lock.Unlock()
 			id := this.dupnodelist[len(this.dupnodelist)-1]
 			this.dupnodelist = this.dupnodelist[:len(this.dupnodelist)-1]
 			remove(id, this)
-			this.Unlock()
 		} else {
-			<-ticker.C
+			time.Sleep(time.Second)
 		}
 	}
 }
