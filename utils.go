@@ -24,7 +24,8 @@ func (this *Btree) genrateid() int32 {
 		this.FreeList = this.FreeList[:len(this.FreeList)-1]
 	} else {
 		if this.GetIndexCursor() >= this.GetSize() {
-			this.nodes = append(this.nodes, make([]TreeNode, SIZE)...)
+			this.nodes = append(this.nodes,
+				make([]TreeNode, SIZE)...)
 			*this.Size += int32(SIZE)
 		}
 		id = this.GetIndexCursor()
@@ -37,7 +38,8 @@ func (this *Btree) genrateid() int32 {
 func (this *Btree) newleaf() *Leaf {
 	*this.LeafCount++
 	leaf := &Leaf{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Uint32(this.GetVersion())},
+		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()),
+			Version: proto.Uint32(this.GetVersion())},
 	}
 	return leaf
 }
@@ -46,7 +48,8 @@ func (this *Btree) newleaf() *Leaf {
 func (this *Btree) newnode() *Node {
 	*this.NodeCount++
 	node := &Node{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()), Version: proto.Uint32(this.GetVersion())},
+		IndexMetaData: IndexMetaData{Id: proto.Int32(this.genrateid()),
+			Version: proto.Uint32(this.GetVersion())},
 	}
 	return node
 }

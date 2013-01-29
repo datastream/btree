@@ -35,8 +35,10 @@ func (this *Leaf) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
 		tree.nodes[clone_leaf.GetId()] = clone_leaf
 		mark_dup(*this.Id, tree)
 	}
-	clone_leaf.Keys = append(clone_leaf.Keys[:index], append([][]byte{record.Key}, clone_leaf.Keys[index:]...)...)
-	clone_leaf.Values = append(clone_leaf.Values[:index], append([][]byte{record.Value}, clone_leaf.Values[index:]...)...)
+	clone_leaf.Keys = append(clone_leaf.Keys[:index],
+		append([][]byte{record.Key}, clone_leaf.Keys[index:]...)...)
+	clone_leaf.Values = append(clone_leaf.Values[:index],
+		append([][]byte{record.Value}, clone_leaf.Values[index:]...)...)
 	return true, clone_leaf
 }
 
@@ -48,7 +50,9 @@ func (this *Node) insert_once(key []byte, left_id int32, right_id int32, tree *B
 	if len(this.Keys) == 0 {
 		this.Childrens = append([]int32{left_id}, right_id)
 	} else {
-		this.Childrens = append(this.Childrens[:index+1], append([]int32{right_id}, this.Childrens[index+1:]...)...)
+		this.Childrens = append(this.Childrens[:index+1],
+			append([]int32{right_id}, this.Childrens[index+1:]...)...)
 	}
-	this.Keys = append(this.Keys[:index], append([][]byte{key}, this.Keys[index:]...)...)
+	this.Keys = append(this.Keys[:index], append([][]byte{key},
+		this.Keys[index:]...)...)
 }

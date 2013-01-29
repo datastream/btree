@@ -26,15 +26,25 @@ func (this *Node) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte
 		if len(clone_node.Keys) > 0 {
 			var left int32
 			if get_leaf(clone_node.Childrens[index-1], tree) != nil {
-				left = clone_node.merge_leaf(clone_node.Childrens[index-1], clone_node.Childrens[index], index-1, tree)
+				left = clone_node.merge_leaf(
+					clone_node.Childrens[index-1],
+					clone_node.Childrens[index],
+					index-1,
+					tree)
 				if index == 1 && t_key == nil {
-					leaf := get_leaf(clone_node.Childrens[0], tree)
+					leaf := get_leaf(
+						clone_node.Childrens[0],
+						tree)
 					if leaf != nil && len(leaf.Keys) > 0 {
 						new_key = leaf.Keys[0]
 					}
 				}
 			} else {
-				left = clone_node.merge_node(clone_node.Childrens[index-1], clone_node.Childrens[index], index-1, tree)
+				left = clone_node.merge_node(
+					clone_node.Childrens[index-1],
+					clone_node.Childrens[index],
+					index-1,
+					tree)
 			}
 			if left > 0 {
 				clone_node.Childrens[index-1] = left
@@ -59,8 +69,10 @@ func (this *Leaf) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte
 	}
 	if deleted {
 		clone_leaf, _ := this.clone(tree).(*Leaf)
-		clone_leaf.Keys = append(clone_leaf.Keys[:index], clone_leaf.Keys[index+1:]...)
-		clone_leaf.Values = append(clone_leaf.Values[:index], clone_leaf.Values[index+1:]...)
+		clone_leaf.Keys = append(clone_leaf.Keys[:index],
+			clone_leaf.Keys[index+1:]...)
+		clone_leaf.Values = append(clone_leaf.Values[:index],
+			clone_leaf.Values[index+1:]...)
 		if this.GetId() == tree.GetRoot() {
 			tree.cloneroot = clone_leaf.GetId()
 		}

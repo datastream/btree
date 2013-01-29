@@ -32,7 +32,7 @@ func TestSearch(t *testing.T) {
 		}
 		go tree.Insert(rd)
 	}
-	time.Sleep(time.Second*10)
+	time.Sleep(time.Second * 10)
 	for i := 0; i < size; i++ {
 		if string(tree.Search([]byte(strconv.Itoa(i)))) != strconv.Itoa(i) {
 			t.Fatal("Find Failed", i)
