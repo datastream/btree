@@ -4,17 +4,18 @@ import (
 	"bytes"
 )
 
-// search record
-func (this *Node) search_record(key []byte, tree *Btree) []byte {
-	index := this.locate(key)
-	return tree.nodes[this.Childrens[index]].search_record(key, tree)
+// node search record
+func (n *Node) searchRecord(key []byte, tree *Btree) []byte {
+	index := n.locate(key)
+	return tree.nodes[n.Childrens[index]].searchRecord(key, tree)
 }
 
-func (this *Leaf) search_record(key []byte, tree *Btree) []byte {
-	index := this.locate(key) - 1
+// leaf search
+func (l *Leaf) searchRecord(key []byte, tree *Btree) []byte {
+	index := l.locate(key) - 1
 	if index >= 0 {
-		if bytes.Compare(this.Keys[index], key) == 0 {
-			return this.Values[index]
+		if bytes.Compare(l.Keys[index], key) == 0 {
+			return l.Values[index]
 		}
 	}
 	return nil

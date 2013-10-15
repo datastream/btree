@@ -5,38 +5,39 @@ import (
 )
 
 //debug func
-func (this *Node) PrintChildrens() {
-	for i := range this.Childrens {
-		fmt.Println("Node", this.GetId(), "Child", this.Childrens[i])
+func (n *Node) PrintChildrens() {
+	for i := range n.Childrens {
+		fmt.Println("Node", n.GetId(), "Child", n.Childrens[i])
 	}
 }
 
-func (this *Node) PrintKeys() {
-	for i := range this.Keys {
-		fmt.Println("Node", this.GetId(), "Key", string(this.Keys[i]))
-	}
-}
-func (this *Leaf) PrintKeys() {
-	for i := range this.Keys {
-		fmt.Println("Leaf", this.GetId(), "Key", string(this.Keys[i]))
+func (n *Node) PrintKeys() {
+	for i := range n.Keys {
+		fmt.Println("Node", n.GetId(), "Key", string(n.Keys[i]))
 	}
 }
 
-func (this *Btree) PrintInfo() {
-	fmt.Println("Root", this.GetRoot())
-	fmt.Println("IndexCursor", this.GetIndexCursor())
-	fmt.Println("LeafCount", *this.LeafCount)
-	fmt.Println("NodeCount", *this.NodeCount)
+func (l *Leaf) PrintKeys() {
+	for i := range l.Keys {
+		fmt.Println("Leaf", l.GetId(), "Key", string(l.Keys[i]))
+	}
 }
 
-func (this *Btree) PrintTree() {
+func (t *Btree) PrintInfo() {
+	fmt.Println("Root", t.GetRoot())
+	fmt.Println("IndexCursor", t.GetIndexCursor())
+	fmt.Println("LeafCount", *t.LeafCount)
+	fmt.Println("NodeCount", *t.NodeCount)
+}
+
+func (t *Btree) PrintTree() {
 	fmt.Println("-----------Tree-------------")
-	for i := 0; i < int(this.GetIndexCursor()); i++ {
-		if node, ok := this.nodes[i].(*Node); ok {
+	for i := 0; i < int(t.GetIndexCursor()); i++ {
+		if node, ok := t.nodes[i].(*Node); ok {
 			node.PrintKeys()
 			node.PrintChildrens()
 		}
-		if leaf, ok := this.nodes[i].(*Leaf); ok {
+		if leaf, ok := t.nodes[i].(*Leaf); ok {
 			leaf.PrintKeys()
 		}
 		fmt.Println("AA")

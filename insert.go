@@ -4,55 +4,54 @@ import (
 	"bytes"
 )
 
-//insert
-func (this *Node) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
-	index := this.locate(record.Key)
-	if rst, clone_treenode := tree.nodes[this.Childrens[index]].insert_record(record, tree); rst {
-		tree.nodes[*get_treenode_id(clone_treenode)] = clone_treenode
-		clone_node, _ := this.clone(tree).(*Node)
-		clone_node.Childrens[index] = *get_treenode_id(clone_treenode)
-		if get_key_size(clone_treenode) > int(tree.GetNodeMax()) {
-			key, left, right := clone_treenode.split(tree)
-			clone_node.insert_once(key, left, right, tree)
+// insert node
+func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
+	index := n.locate(record.Key)
+	if rst, clonedTreeNode := tree.nodes[n.Childrens[index]].insertRecord(record, tree); rst {
+		tree.nodes[*getTreeNodeId(clonedTreeNode)] = clonedTreeNode
+		clonedNode, _ := n.clone(tree).(*Node)
+		clonedNode.Childrens[index] = *getTreeNodeId(clonedTreeNode)
+		if getKeySize(clonedTreeNode) > int(tree.GetNodeMax()) {
+			key, left, right := clonedTreeNode.split(tree)
+			clonedNode.insertOnce(key, left, right, tree)
 		}
-		mark_dup(*this.Id, tree)
-		return true, clone_node
+		markDup(*n.Id, tree)
+		return true, clonedNode
 	}
 	return false, nil
 }
-func (this *Leaf) insert_record(record *Record, tree *Btree) (bool, TreeNode) {
-	index := this.locate(record.Key)
+
+// insert leaf
+func (l *Leaf) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
+	index := l.locate(record.Key)
 	if index > 0 {
-		if bytes.Compare(this.Keys[index-1], record.Key) == 0 {
+		if bytes.Compare(l.Keys[index-1], record.Key) == 0 {
 			return false, nil
 		}
 	}
-	var clone_leaf *Leaf
-	if len(this.Keys) == 0 {
-		clone_leaf = this
+	var clonedLeaf *Leaf
+	if len(l.Keys) == 0 {
+		clonedLeaf = l
 	} else {
-		clone_leaf, _ = this.clone(tree).(*Leaf)
-		tree.nodes[clone_leaf.GetId()] = clone_leaf
-		mark_dup(*this.Id, tree)
+		clonedLeaf, _ = l.clone(tree).(*Leaf)
+		tree.nodes[clonedLeaf.GetId()] = clonedLeaf
+		markDup(*l.Id, tree)
 	}
-	clone_leaf.Keys = append(clone_leaf.Keys[:index],
-		append([][]byte{record.Key}, clone_leaf.Keys[index:]...)...)
-	clone_leaf.Values = append(clone_leaf.Values[:index],
-		append([][]byte{record.Value}, clone_leaf.Values[index:]...)...)
-	return true, clone_leaf
+	clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
+		append([][]byte{record.Key}, clonedLeaf.Keys[index:]...)...)
+	clonedLeaf.Values = append(clonedLeaf.Values[:index],
+		append([][]byte{record.Value}, clonedLeaf.Values[index:]...)...)
+	return true, clonedLeaf
 }
 
-/*
- * Insert key into tree node
- */
-func (this *Node) insert_once(key []byte, left_id int32, right_id int32, tree *Btree) {
-	index := this.locate(key)
-	if len(this.Keys) == 0 {
-		this.Childrens = append([]int32{left_id}, right_id)
+// Insert key into tree node
+func (n *Node) insertOnce(key []byte, leftID int32, rightID int32, tree *Btree) {
+	index := n.locate(key)
+	if len(n.Keys) == 0 {
+		n.Childrens = append([]int32{leftID}, rightID)
 	} else {
-		this.Childrens = append(this.Childrens[:index+1],
-			append([]int32{right_id}, this.Childrens[index+1:]...)...)
+		n.Childrens = append(n.Childrens[:index+1],
+			append([]int32{rightID}, n.Childrens[index+1:]...)...)
 	}
-	this.Keys = append(this.Keys[:index], append([][]byte{key},
-		this.Keys[index:]...)...)
+	n.Keys = append(n.Keys[:index], append([][]byte{key}, n.Keys[index:]...)...)
 }

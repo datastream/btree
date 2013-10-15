@@ -4,95 +4,95 @@ import (
 	"bytes"
 )
 
-// delete in cloned node/leaf
-func (this *Node) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte) {
-	index := this.locate(key)
-	if rst, clone_treenode, new_key := tree.nodes[this.Childrens[index]].delete_record(key, tree); rst {
-		clone_node, _ := this.clone(tree).(*Node)
-		tree.nodes[clone_node.GetId()] = clone_node
-		clone_node.Childrens[index] = *get_treenode_id(clone_treenode)
-		if this.GetId() == tree.GetRoot() {
-			tree.cloneroot = clone_node.GetId()
+// delete in cloned node
+func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
+	index := n.locate(key)
+	if rst, clonedTreeNode, newKey := tree.nodes[n.Childrens[index]].deleteRecord(key, tree); rst {
+		clonedNode, _ := n.clone(tree).(*Node)
+		tree.nodes[clonedNode.GetId()] = clonedNode
+		clonedNode.Childrens[index] = *getTreeNodeId(clonedTreeNode)
+		if n.GetId() == tree.GetRoot() {
+			tree.cloneroot = clonedNode.GetId()
 		}
-		t_key := new_key
-		if new_key != nil {
-			if clone_node.replace(key, new_key) {
-				new_key = nil
+		tmpKey := newKey
+		if newKey != nil {
+			if clonedNode.replace(key, newKey) {
+				newKey = nil
 			}
 		}
 		if index == 0 {
 			index = 1
 		}
-		if len(clone_node.Keys) > 0 {
+		if len(clonedNode.Keys) > 0 {
 			var left int32
-			if get_leaf(clone_node.Childrens[index-1], tree) != nil {
-				left = clone_node.merge_leaf(
-					clone_node.Childrens[index-1],
-					clone_node.Childrens[index],
+			if getLeaf(clonedNode.Childrens[index-1], tree) != nil {
+				left = clonedNode.mergeLeaf(
+					clonedNode.Childrens[index-1],
+					clonedNode.Childrens[index],
 					index-1,
 					tree)
-				if index == 1 && t_key == nil {
-					leaf := get_leaf(
-						clone_node.Childrens[0],
+				if index == 1 && tmpKey == nil {
+					leaf := getLeaf(
+						clonedNode.Childrens[0],
 						tree)
 					if leaf != nil && len(leaf.Keys) > 0 {
-						new_key = leaf.Keys[0]
+						newKey = leaf.Keys[0]
 					}
 				}
 			} else {
-				left = clone_node.merge_node(
-					clone_node.Childrens[index-1],
-					clone_node.Childrens[index],
+				left = clonedNode.mergeNode(
+					clonedNode.Childrens[index-1],
+					clonedNode.Childrens[index],
 					index-1,
 					tree)
 			}
 			if left > 0 {
-				clone_node.Childrens[index-1] = left
+				clonedNode.Childrens[index-1] = left
 			}
 		}
-		mark_dup(*this.Id, tree)
-		return true, clone_node, new_key
+		markDup(*n.Id, tree)
+		return true, clonedNode, newKey
 	}
 	return false, nil, nil
 }
 
 //delete record in a lead
 //first return deleted or not
-//second return clone_treenode
-func (this *Leaf) delete_record(key []byte, tree *Btree) (bool, TreeNode, []byte) {
+//second return cloneTreeNode
+func (l *Leaf) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 	deleted := false
-	index := this.locate(key) - 1
+	index := l.locate(key) - 1
 	if index >= 0 {
-		if bytes.Compare(this.Keys[index], key) == 0 {
+		if bytes.Compare(l.Keys[index], key) == 0 {
 			deleted = true
 		}
 	}
 	if deleted {
-		clone_leaf, _ := this.clone(tree).(*Leaf)
-		clone_leaf.Keys = append(clone_leaf.Keys[:index],
-			clone_leaf.Keys[index+1:]...)
-		clone_leaf.Values = append(clone_leaf.Values[:index],
-			clone_leaf.Values[index+1:]...)
-		if this.GetId() == tree.GetRoot() {
-			tree.cloneroot = clone_leaf.GetId()
+		clonedLeaf, _ := l.clone(tree).(*Leaf)
+		clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
+			clonedLeaf.Keys[index+1:]...)
+		clonedLeaf.Values = append(clonedLeaf.Values[:index],
+			clonedLeaf.Values[index+1:]...)
+		if l.GetId() == tree.GetRoot() {
+			tree.cloneroot = clonedLeaf.GetId()
 		}
-		tree.nodes[clone_leaf.GetId()] = clone_leaf
-		mark_dup(*this.Id, tree)
-		if index == 0 && len(clone_leaf.Keys) > 0 {
-			return true, clone_leaf, clone_leaf.Keys[0]
+		tree.nodes[clonedLeaf.GetId()] = clonedLeaf
+		markDup(*l.Id, tree)
+		if index == 0 && len(clonedLeaf.Keys) > 0 {
+			return true, clonedLeaf, clonedLeaf.Keys[0]
 		} else {
-			return true, clone_leaf, nil
+			return true, clonedLeaf, nil
 		}
 	}
 	return false, nil, nil
 }
 
 // replace delete key
-func (this *Node) replace(old_key, new_key []byte) bool {
-	index := this.locate(old_key) - 1
+func (n *Node) replace(oldKey, newKey []byte) bool {
+	index := n.locate(oldKey) - 1
 	if index >= 0 {
-		if bytes.Compare(this.Keys[index], old_key) == 0 {
-			this.Keys[index] = new_key
+		if bytes.Compare(n.Keys[index], oldKey) == 0 {
+			n.Keys[index] = newKey
 			return true
 		}
 	}

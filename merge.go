@@ -1,65 +1,65 @@
 package btree
 
 // merge leaf
-func (this *Node) merge_leaf(left_id int32, right_id int32, index int, tree *Btree) int32 {
-	left := get_leaf(left_id, tree)
-	right := get_leaf(right_id, tree)
+func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) int32 {
+	left := getLeaf(leftID, tree)
+	right := getLeaf(rightID, tree)
 	if (len(left.Values) + len(right.Values)) > int(tree.GetLeafMax()) {
 		return -1
 	}
 	// clone left child
-	left_clone := left.clone(tree).(*Leaf)
-	id := *get_treenode_id(left_clone)
-	tree.nodes[id] = left_clone
-	this.Childrens[index] = id
-	// remove right_id
-	if index == len(this.Keys) {
-		this.Childrens = this.Childrens[:index]
-		this.Keys = this.Keys[:index-1]
+	leftClone := left.clone(tree).(*Leaf)
+	id := *getTreeNodeId(leftClone)
+	tree.nodes[id] = leftClone
+	n.Childrens[index] = id
+	// remove rightID
+	if index == len(n.Keys) {
+		n.Childrens = n.Childrens[:index]
+		n.Keys = n.Keys[:index-1]
 	} else {
-		this.Childrens = append(this.Childrens[:index+1],
-			this.Childrens[index+2:]...)
-		this.Keys = append(this.Keys[:index], this.Keys[index+1:]...)
+		n.Childrens = append(n.Childrens[:index+1],
+			n.Childrens[index+2:]...)
+		n.Keys = append(n.Keys[:index], n.Keys[index+1:]...)
 	}
 	// add right to left
-	left_clone.Values = append(left_clone.Values, right.Values...)
-	left_clone.Keys = append(left_clone.Keys, right.Keys...)
+	leftClone.Values = append(leftClone.Values, right.Values...)
+	leftClone.Keys = append(leftClone.Keys, right.Keys...)
 	// cleanup old data
-	mark_dup(left_id, tree)
-	mark_dup(right_id, tree)
-	return *left_clone.Id
+	markDup(leftID, tree)
+	markDup(rightID, tree)
+	return *leftClone.Id
 }
 
 // merge node
-func (this *Node) merge_node(left_id int32, right_id int32, index int, tree *Btree) int32 {
-	left := get_node(left_id, tree)
-	right := get_node(right_id, tree)
+func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) int32 {
+	left := getNode(leftID, tree)
+	right := getNode(rightID, tree)
 	if len(left.Keys)+len(right.Keys) > int(tree.GetNodeMax()) {
 		return -1
 	}
 	// clone left node
-	left_clone := left.clone(tree).(*Node)
-	id := *get_treenode_id(left_clone)
-	tree.nodes[id] = left_clone
-	this.Childrens[index] = id
+	leftClone := left.clone(tree).(*Node)
+	id := *getTreeNodeId(leftClone)
+	tree.nodes[id] = leftClone
+	n.Childrens[index] = id
 	// merge key
-	left_clone.Keys = append(left_clone.Keys,
-		append([][]byte{this.Keys[index]},
+	leftClone.Keys = append(leftClone.Keys,
+		append([][]byte{n.Keys[index]},
 			right.Keys...)...)
 	// merge childrens
-	left_clone.Childrens = append(left_clone.Childrens, right.Childrens...)
+	leftClone.Childrens = append(leftClone.Childrens, right.Childrens...)
 	// remove old key
-	this.Keys = append(this.Keys[:index], this.Keys[index+1:]...)
+	n.Keys = append(n.Keys[:index], n.Keys[index+1:]...)
 	// remove old right node
-	this.Childrens = append(this.Childrens[:index+1],
-		this.Childrens[index+2:]...)
+	n.Childrens = append(n.Childrens[:index+1],
+		n.Childrens[index+2:]...)
 	// check size, spilt if over size
-	if len(left_clone.Keys) > int(tree.GetNodeMax()) {
-		key, left, right := left_clone.split(tree)
-		this.insert_once(key, left, right, tree)
+	if len(leftClone.Keys) > int(tree.GetNodeMax()) {
+		key, left, right := leftClone.split(tree)
+		n.insertOnce(key, left, right, tree)
 	}
 	// cleanup old
-	mark_dup(left_id, tree)
-	mark_dup(right_id, tree)
-	return *left_clone.Id
+	markDup(leftID, tree)
+	markDup(rightID, tree)
+	return *leftClone.Id
 }
