@@ -2,6 +2,10 @@
 
 This is pure golang btree library. it's copy on write btree.
 
+```
+go get github.com/datastream/btree
+```
+
 ## API
 
 ### NewRecord(key, value []byte)
