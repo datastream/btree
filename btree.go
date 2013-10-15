@@ -9,9 +9,9 @@ import (
 type Btree struct {
 	BtreeMetaData
 	sync.Mutex
-	gcLock     sync.RWMutex
+	gcLock      sync.RWMutex
 	nodes       []TreeNode
-	isSyning   bool
+	isSyning    bool
 	cloneroot   int32
 	dupnodelist []int32
 }
@@ -34,10 +34,16 @@ type Record struct {
 	Value []byte
 }
 
+// tree size
 const SIZE = 1 << 10
+
+// leaf size
 const LEAFSIZE = 1 << 5
+
+// node size
 const NODESIZE = 1 << 6
 
+// node, leaf setting
 const (
 	NODE = 1
 	LEAF = 2
