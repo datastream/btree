@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+// dump btree to disk
 func (t *Btree) Dump(filename string) error {
 	t.Lock()
 	t.isSyning = true
@@ -106,6 +107,7 @@ func serializeNode(node *Node) ([]byte, error) {
 	return rst, nil
 }
 
+// restore btree from disk
 func Restore(filename string) (tree *Btree, err error) {
 	fd, err := os.Open(filename)
 	defer fd.Close()

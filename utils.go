@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// treenode interface
+// node, leaf support this interface
 type TreeNode interface {
 	insertRecord(record *Record, tree *Btree) (bool, TreeNode)
 	deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte)
@@ -94,7 +96,7 @@ func getLeaf(id int32, tree *Btree) *Leaf {
 }
 
 //get id by index
-func getId(index int32, tree *Btree) *int32 {
+func getID(index int32, tree *Btree) *int32 {
 	if node, ok := tree.nodes[index].(*Node); ok {
 		return node.Id
 	}
@@ -105,7 +107,7 @@ func getId(index int32, tree *Btree) *int32 {
 }
 
 //get treenode's id
-func getTreeNodeId(treenode TreeNode) *int32 {
+func getTreeNodeID(treenode TreeNode) *int32 {
 	if node, ok := treenode.(*Node); ok {
 		return node.Id
 	}

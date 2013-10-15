@@ -10,7 +10,7 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 	if rst, clonedTreeNode, newKey := tree.nodes[n.Childrens[index]].deleteRecord(key, tree); rst {
 		clonedNode, _ := n.clone(tree).(*Node)
 		tree.nodes[clonedNode.GetId()] = clonedNode
-		clonedNode.Childrens[index] = *getTreeNodeId(clonedTreeNode)
+		clonedNode.Childrens[index] = *getTreeNodeID(clonedTreeNode)
 		if n.GetId() == tree.GetRoot() {
 			tree.cloneroot = clonedNode.GetId()
 		}

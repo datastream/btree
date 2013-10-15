@@ -8,9 +8,9 @@ import (
 func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 	index := n.locate(record.Key)
 	if rst, clonedTreeNode := tree.nodes[n.Childrens[index]].insertRecord(record, tree); rst {
-		tree.nodes[*getTreeNodeId(clonedTreeNode)] = clonedTreeNode
+		tree.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
 		clonedNode, _ := n.clone(tree).(*Node)
-		clonedNode.Childrens[index] = *getTreeNodeId(clonedTreeNode)
+		clonedNode.Childrens[index] = *getTreeNodeID(clonedTreeNode)
 		if getKeySize(clonedTreeNode) > int(tree.GetNodeMax()) {
 			key, left, right := clonedTreeNode.split(tree)
 			clonedNode.insertOnce(key, left, right, tree)

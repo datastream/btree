@@ -16,16 +16,19 @@ type Btree struct {
 	dupnodelist []int32
 }
 
+// tree node
 type Node struct {
 	IndexMetaData
 	NodeRecordMetaData
 }
 
+// tree leaf
 type Leaf struct {
 	IndexMetaData
 	LeafRecordMetaData
 }
 
+// data struct in leaf
 type Record struct {
 	Key   []byte
 	Value []byte
@@ -94,15 +97,15 @@ func (t *Btree) Insert(record *Record) bool {
 	*t.Version++
 	stat, clonedTreeNode := t.nodes[t.GetRoot()].insertRecord(record, t)
 	if stat {
-		t.nodes[*getTreeNodeId(clonedTreeNode)] = clonedTreeNode
+		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
 		if getKeySize(clonedTreeNode) > int(t.GetNodeMax()) {
 			nnode := t.newNode()
 			key, left, right := clonedTreeNode.split(t)
 			nnode.insertOnce(key, left, right, t)
-			t.Root = getTreeNodeId(nnode)
+			t.Root = getTreeNodeID(nnode)
 			t.nodes[int(t.GetRoot())] = nnode
 		} else {
-			t.Root = getTreeNodeId(clonedTreeNode)
+			t.Root = getTreeNodeID(clonedTreeNode)
 		}
 	} else {
 		*t.Version--
@@ -117,16 +120,16 @@ func (t *Btree) Delete(key []byte) bool {
 	*t.Version++
 	stat, clonedTreeNode, _ := t.nodes[t.GetRoot()].deleteRecord(key, t)
 	if stat {
-		t.nodes[*getTreeNodeId(clonedTreeNode)] = clonedTreeNode
+		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
 		if getKeySize(clonedTreeNode) == 0 {
 			if clonedNode, ok := clonedTreeNode.(*Node); ok {
-				t.Root = getId(clonedNode.Childrens[0], t)
+				t.Root = getID(clonedNode.Childrens[0], t)
 				markDup(*clonedNode.Id, t)
 			} else {
-				t.Root = getTreeNodeId(clonedTreeNode)
+				t.Root = getTreeNodeID(clonedTreeNode)
 			}
 		} else {
-			t.Root = getTreeNodeId(clonedTreeNode)
+			t.Root = getTreeNodeID(clonedTreeNode)
 		}
 	} else {
 		*t.Version--
@@ -148,9 +151,9 @@ func (t *Btree) Update(record *Record) bool {
 	*t.Version++
 	stat, clonedTreeNode := t.nodes[t.GetRoot()].updateRecord(record, t)
 	if stat {
-		t.nodes[*getTreeNodeId(clonedTreeNode)] = clonedTreeNode
+		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
 		markDup(t.GetRoot(), t)
-		t.Root = getTreeNodeId(clonedTreeNode)
+		t.Root = getTreeNodeID(clonedTreeNode)
 	} else {
 		*t.Version--
 	}

@@ -9,7 +9,7 @@ func (n *Node) updateRecord(record *Record, tree *Btree) (bool, TreeNode) {
 	index := n.locate(record.Key)
 	if stat, clonedTreeNode := tree.nodes[n.Childrens[index]].updateRecord(record, tree); stat {
 		clonedNode, _ := n.clone(tree).(*Node)
-		id := *getTreeNodeId(clonedTreeNode)
+		id := *getTreeNodeID(clonedTreeNode)
 		clonedNode.Childrens[index] = id
 		tree.nodes[id] = clonedTreeNode
 		markDup(*n.Id, tree)

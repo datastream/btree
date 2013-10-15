@@ -9,7 +9,7 @@ func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) in
 	}
 	// clone left child
 	leftClone := left.clone(tree).(*Leaf)
-	id := *getTreeNodeId(leftClone)
+	id := *getTreeNodeID(leftClone)
 	tree.nodes[id] = leftClone
 	n.Childrens[index] = id
 	// remove rightID
@@ -39,7 +39,7 @@ func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) in
 	}
 	// clone left node
 	leftClone := left.clone(tree).(*Node)
-	id := *getTreeNodeId(leftClone)
+	id := *getTreeNodeID(leftClone)
 	tree.nodes[id] = leftClone
 	n.Childrens[index] = id
 	// merge key
