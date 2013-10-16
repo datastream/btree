@@ -5,64 +5,69 @@ import (
 	"sync"
 )
 
-// if btree's stat >0, btree is inserting/deleteing
+// Btree metadata
 type Btree struct {
 	BtreeMetaData
 	sync.Mutex
-	gcLock      sync.RWMutex
 	nodes       []TreeNode
-	isSyning    bool
+	state       int32
 	cloneroot   int32
 	dupnodelist []int32
 }
 
-// tree node
+// Node is btree node
 type Node struct {
 	IndexMetaData
 	NodeRecordMetaData
 }
 
-// tree leaf
+// Leaf is btree leaf
 type Leaf struct {
 	IndexMetaData
 	LeafRecordMetaData
 }
 
-// data struct in leaf
+// Record is data record, which will be stored in btree
 type Record struct {
 	Key   []byte
 	Value []byte
 }
 
-// tree size
-const SIZE = 1 << 10
+// TreeSize is  tree size
+const TreeSize = 1 << 10
 
-// leaf size
-const LEAFSIZE = 1 << 5
+// LeafSize is leaf size
+const LeafSize = 1 << 5
 
-// node size
-const NODESIZE = 1 << 6
+// NodeSize is node size
+const NodeSize = 1 << 6
 
-// node, leaf setting
+// isNode, isLeaf is treenode tag
 const (
-	NODE = 1
-	LEAF = 2
+	isNode = iota
+	isLeaf
 )
 
-//create new record
+// StateInt, StateDump, StateSync is btree stat
+const (
+	StateNormal = iota
+	StateDump
+	StateGc
+)
+
+// NewRecord create record
 func NewRecord(key, value []byte) *Record {
 	return &Record{key, value}
 }
 
-//create new btree
+// NewBtree create a btree
 func NewBtree() *Btree {
 	tree := new(Btree)
-	tree.nodes = make([]TreeNode, SIZE)
-	tree.isSyning = false
+	tree.nodes = make([]TreeNode, TreeSize)
 	tree.BtreeMetaData = BtreeMetaData{
-		Size:        proto.Int32(SIZE),
-		LeafMax:     proto.Int32(LEAFSIZE),
-		NodeMax:     proto.Int32(NODESIZE),
+		Size:        proto.Int32(TreeSize),
+		LeafMax:     proto.Int32(LeafSize),
+		NodeMax:     proto.Int32(NodeSize),
 		LeafCount:   proto.Int32(0),
 		NodeCount:   proto.Int32(0),
 		IndexCursor: proto.Int32(0),
@@ -70,18 +75,16 @@ func NewBtree() *Btree {
 	tree.Version = proto.Uint32(0)
 	leaf := tree.newLeaf()
 	tree.Root = proto.Int32(leaf.GetId())
-	tree.nodes[*tree.Root] = leaf
-	go tree.gc()
+	tree.state = StateNormal
 	return tree
 }
 
-//create new btree with custom leafsize/nodesize
+// NewBtreeSize create new btree with custom leafsize/nodesize
 func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	tree := new(Btree)
-	tree.nodes = make([]TreeNode, SIZE)
-	tree.isSyning = false
+	tree.nodes = make([]TreeNode, TreeSize)
 	tree.BtreeMetaData = BtreeMetaData{
-		Size:        proto.Int32(SIZE),
+		Size:        proto.Int32(TreeSize),
 		LeafMax:     proto.Int32(leafsize),
 		NodeMax:     proto.Int32(nodesize),
 		LeafCount:   proto.Int32(0),
@@ -91,27 +94,25 @@ func NewBtreeSize(leafsize int32, nodesize int32) *Btree {
 	tree.Version = proto.Uint32(0)
 	leaf := tree.newLeaf()
 	tree.Root = proto.Int32(leaf.GetId())
-	tree.nodes[*tree.Root] = leaf
-	go tree.gc()
+	tree.state = StateNormal
 	return tree
 }
 
-//insert
+// Insert can insert record into a btree
 func (t *Btree) Insert(record *Record) bool {
 	t.Lock()
 	defer t.Unlock()
 	*t.Version++
 	stat, clonedTreeNode := t.nodes[t.GetRoot()].insertRecord(record, t)
 	if stat {
-		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
-		if getKeySize(clonedTreeNode) > int(t.GetNodeMax()) {
+		if len(clonedTreeNode.GetKeys()) > int(t.GetNodeMax()) {
 			nnode := t.newNode()
 			key, left, right := clonedTreeNode.split(t)
 			nnode.insertOnce(key, left, right, t)
-			t.Root = getTreeNodeID(nnode)
+			t.Root = proto.Int32(nnode.GetId())
 			t.nodes[int(t.GetRoot())] = nnode
 		} else {
-			t.Root = getTreeNodeID(clonedTreeNode)
+			t.Root = proto.Int32(clonedTreeNode.GetId())
 		}
 	} else {
 		*t.Version--
@@ -119,23 +120,22 @@ func (t *Btree) Insert(record *Record) bool {
 	return stat
 }
 
-//delete
+// Delete can delete record
 func (t *Btree) Delete(key []byte) bool {
 	t.Lock()
 	defer t.Unlock()
 	*t.Version++
 	stat, clonedTreeNode, _ := t.nodes[t.GetRoot()].deleteRecord(key, t)
 	if stat {
-		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
-		if getKeySize(clonedTreeNode) == 0 {
+		if len(clonedTreeNode.GetKeys()) == 0 {
 			if clonedNode, ok := clonedTreeNode.(*Node); ok {
-				t.Root = getID(clonedNode.Childrens[0], t)
-				markDup(*clonedNode.Id, t)
+				t.Root = proto.Int32(t.nodes[clonedNode.Childrens[0]].GetId())
+				t.markDup(clonedNode.GetId())
 			} else {
-				t.Root = getTreeNodeID(clonedTreeNode)
+				t.Root = proto.Int32(clonedTreeNode.GetId())
 			}
 		} else {
-			t.Root = getTreeNodeID(clonedTreeNode)
+			t.Root = proto.Int32(clonedTreeNode.GetId())
 		}
 	} else {
 		*t.Version--
@@ -143,23 +143,22 @@ func (t *Btree) Delete(key []byte) bool {
 	return stat
 }
 
-//search
+// Search return value
 func (t *Btree) Search(key []byte) []byte {
-	t.gcLock.RLock()
-	defer t.gcLock.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 	return t.nodes[t.GetRoot()].searchRecord(key, t)
 }
 
-//update
+// Update is used to update key/value
 func (t *Btree) Update(record *Record) bool {
 	t.Lock()
 	defer t.Unlock()
 	*t.Version++
-	stat, clonedTreeNode := t.nodes[t.GetRoot()].updateRecord(record, t)
+	stat, clonedNode := t.nodes[t.GetRoot()].updateRecord(record, t)
 	if stat {
-		t.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
-		markDup(t.GetRoot(), t)
-		t.Root = getTreeNodeID(clonedTreeNode)
+		t.markDup(t.GetRoot())
+		t.Root = proto.Int32(clonedNode.GetId())
 	} else {
 		*t.Version--
 	}

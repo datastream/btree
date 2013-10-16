@@ -4,18 +4,20 @@ import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
 	"time"
+	"sync/atomic"
 )
 
-// treenode interface
+// TreeNode interface
 // node, leaf support this interface
 type TreeNode interface {
 	insertRecord(record *Record, tree *Btree) (bool, TreeNode)
 	deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte)
 	updateRecord(recode *Record, tree *Btree) (bool, TreeNode)
 	searchRecord(key []byte, tree *Btree) []byte
-	clone(tree *Btree) TreeNode
 	split(tree *Btree) (key []byte, left, right int32)
 	locate(key []byte) int
+	GetId() int32
+	GetKeys() [][]byte
 }
 
 // genrate node/leaf id
@@ -26,9 +28,8 @@ func (t *Btree) genrateID() int32 {
 		t.FreeList = t.FreeList[:len(t.FreeList)-1]
 	} else {
 		if t.GetIndexCursor() >= t.GetSize() {
-			t.nodes = append(t.nodes,
-				make([]TreeNode, SIZE)...)
-			*t.Size += int32(SIZE)
+			t.nodes = append(t.nodes, make([]TreeNode, TreeSize)...)
+			*t.Size += int32(TreeSize)
 		}
 		id = t.GetIndexCursor()
 		*t.IndexCursor++
@@ -39,93 +40,46 @@ func (t *Btree) genrateID() int32 {
 //alloc new leaf
 func (t *Btree) newLeaf() *Leaf {
 	*t.LeafCount++
+	id := t.genrateID()
 	leaf := &Leaf{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(t.genrateID()),
+		IndexMetaData: IndexMetaData{Id: proto.Int32(id),
 			Version: proto.Uint32(t.GetVersion())},
 	}
+	t.nodes[id] = leaf
 	return leaf
 }
 
 //alloc new tree node
 func (t *Btree) newNode() *Node {
 	*t.NodeCount++
+	id := t.genrateID()
 	node := &Node{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(t.genrateID()),
+		IndexMetaData: IndexMetaData{Id: proto.Int32(id),
 			Version: proto.Uint32(t.GetVersion())},
 	}
+	t.nodes[id] = node
 	return node
 }
 
-//remove node/leaf
-func remove(id int32, tree *Btree) {
-	if node, ok := tree.nodes[id].(*Node); ok {
-		tree.FreeList = append(tree.FreeList, node.GetId())
-		*tree.NodeCount--
-	}
-	if leaf, ok := tree.nodes[id].(*Leaf); ok {
-		tree.FreeList = append(tree.FreeList, leaf.GetId())
-		*tree.LeafCount--
-	}
-	tree.nodes[id] = nil
-}
-
 //mark node/leaf duplicated
-func markDup(id int32, tree *Btree) {
-	if tree.isSyning {
-		tree.gcLock.Lock()
-		defer tree.gcLock.Unlock()
-		tree.dupnodelist = append(tree.dupnodelist, id)
-
-	}
+func (t *Btree)markDup(id int32) {
+	t.dupnodelist = append(t.dupnodelist, id)
 }
 
 //get node by id
-func getNode(id int32, tree *Btree) *Node {
-	if node, ok := tree.nodes[id].(*Node); ok {
+func (t *Btree)getNode(id int32) *Node {
+	if node, ok := t.nodes[id].(*Node); ok {
 		return node
 	}
 	return nil
 }
 
 //get leaf by id
-func getLeaf(id int32, tree *Btree) *Leaf {
-	if leaf, ok := tree.nodes[id].(*Leaf); ok {
+func (t *Btree)getLeaf(id int32) *Leaf {
+	if leaf, ok := t.nodes[id].(*Leaf); ok {
 		return leaf
 	}
 	return nil
-}
-
-//get id by index
-func getID(index int32, tree *Btree) *int32 {
-	if node, ok := tree.nodes[index].(*Node); ok {
-		return node.Id
-	}
-	if leaf, ok := tree.nodes[index].(*Leaf); ok {
-		return leaf.Id
-	}
-	return nil
-}
-
-//get treenode's id
-func getTreeNodeID(treenode TreeNode) *int32 {
-	if node, ok := treenode.(*Node); ok {
-		return node.Id
-	}
-	if leaf, ok := treenode.(*Leaf); ok {
-		return leaf.Id
-	}
-	return nil
-}
-
-//get key number
-func getKeySize(treenode TreeNode) int {
-	if node, ok := treenode.(*Node); ok {
-		return len(node.Keys)
-	}
-	if leaf, ok := treenode.(*Leaf); ok {
-		return len(leaf.Keys)
-	}
-	return 0
 }
 
 //locate key's index in a node
@@ -187,12 +141,22 @@ func (l *Leaf) clone(tree *Btree) TreeNode {
 //gc dupnodelist
 func (t *Btree) gc() {
 	for {
-		if len(t.dupnodelist) > 0 && !t.isSyning {
-			t.gcLock.Lock()
-			defer t.gcLock.Unlock()
-			id := t.dupnodelist[len(t.dupnodelist)-1]
-			t.dupnodelist = t.dupnodelist[:len(t.dupnodelist)-1]
-			remove(id, t)
+		if atomic.CompareAndSwapInt32(&t.state, StateNormal, StateGc) {
+			if len(t.dupnodelist) > 0 {
+				id := t.dupnodelist[len(t.dupnodelist)-1]
+				switch t.nodes[id].(type) {
+				case *Node:
+					*t.NodeCount--
+				case *Leaf:
+					*t.LeafCount--
+				default:
+					atomic.CompareAndSwapInt32(&t.state, StateDump, StateNormal)
+					continue
+				}
+				t.FreeList = append(t.FreeList, id)
+				t.dupnodelist = t.dupnodelist[:len(t.dupnodelist)-1]
+				atomic.CompareAndSwapInt32(&t.state, StateGc, StateNormal)
+			}
 		} else {
 			time.Sleep(time.Second)
 		}

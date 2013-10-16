@@ -8,14 +8,13 @@ import (
 func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 	index := n.locate(record.Key)
 	if rst, clonedTreeNode := tree.nodes[n.Childrens[index]].insertRecord(record, tree); rst {
-		tree.nodes[*getTreeNodeID(clonedTreeNode)] = clonedTreeNode
 		clonedNode, _ := n.clone(tree).(*Node)
-		clonedNode.Childrens[index] = *getTreeNodeID(clonedTreeNode)
-		if getKeySize(clonedTreeNode) > int(tree.GetNodeMax()) {
+		clonedNode.Childrens[index] = clonedTreeNode.GetId()
+		if len(clonedTreeNode.GetKeys()) > int(tree.GetNodeMax()) {
 			key, left, right := clonedTreeNode.split(tree)
 			clonedNode.insertOnce(key, left, right, tree)
 		}
-		markDup(*n.Id, tree)
+		tree.markDup(n.GetId())
 		return true, clonedNode
 	}
 	return false, nil
@@ -34,8 +33,7 @@ func (l *Leaf) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 		clonedLeaf = l
 	} else {
 		clonedLeaf, _ = l.clone(tree).(*Leaf)
-		tree.nodes[clonedLeaf.GetId()] = clonedLeaf
-		markDup(*l.Id, tree)
+		tree.markDup(l.GetId())
 	}
 	clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
 		append([][]byte{record.Key}, clonedLeaf.Keys[index:]...)...)

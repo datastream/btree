@@ -24,6 +24,7 @@ func (l *Leaf) printKeys() {
 	}
 }
 
+// PrintInfo print some basic btree info
 func (t *Btree) PrintInfo() {
 	fmt.Println("Root", t.GetRoot())
 	fmt.Println("IndexCursor", t.GetIndexCursor())
@@ -31,6 +32,7 @@ func (t *Btree) PrintInfo() {
 	fmt.Println("NodeCount", *t.NodeCount)
 }
 
+// PrintTree print all btree's leafs/nodes
 func (t *Btree) PrintTree() {
 	fmt.Println("-----------Tree-------------")
 	for i := 0; i < int(t.GetIndexCursor()); i++ {

@@ -26,62 +26,69 @@ type BtreeMetaData struct {
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (this *BtreeMetaData) Reset()         { *this = BtreeMetaData{} }
-func (this *BtreeMetaData) String() string { return proto.CompactTextString(this) }
-func (*BtreeMetaData) ProtoMessage()       {}
+func (m *BtreeMetaData) Reset()         { *m = BtreeMetaData{} }
+func (m *BtreeMetaData) String() string { return proto.CompactTextString(m) }
+func (*BtreeMetaData) ProtoMessage()    {}
 
-func (this *BtreeMetaData) GetRoot() int32 {
-	if this != nil && this.Root != nil {
-		return *this.Root
+func (m *BtreeMetaData) GetRoot() int32 {
+	if m != nil && m.Root != nil {
+		return *m.Root
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetLeafCount() int32 {
-	if this != nil && this.LeafCount != nil {
-		return *this.LeafCount
+func (m *BtreeMetaData) GetLeafCount() int32 {
+	if m != nil && m.LeafCount != nil {
+		return *m.LeafCount
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetNodeCount() int32 {
-	if this != nil && this.NodeCount != nil {
-		return *this.NodeCount
+func (m *BtreeMetaData) GetNodeCount() int32 {
+	if m != nil && m.NodeCount != nil {
+		return *m.NodeCount
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetLeafMax() int32 {
-	if this != nil && this.LeafMax != nil {
-		return *this.LeafMax
+func (m *BtreeMetaData) GetLeafMax() int32 {
+	if m != nil && m.LeafMax != nil {
+		return *m.LeafMax
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetNodeMax() int32 {
-	if this != nil && this.NodeMax != nil {
-		return *this.NodeMax
+func (m *BtreeMetaData) GetNodeMax() int32 {
+	if m != nil && m.NodeMax != nil {
+		return *m.NodeMax
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetSize() int32 {
-	if this != nil && this.Size != nil {
-		return *this.Size
+func (m *BtreeMetaData) GetFreeList() []int32 {
+	if m != nil {
+		return m.FreeList
+	}
+	return nil
+}
+
+func (m *BtreeMetaData) GetSize() int32 {
+	if m != nil && m.Size != nil {
+		return *m.Size
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetVersion() uint32 {
-	if this != nil && this.Version != nil {
-		return *this.Version
+func (m *BtreeMetaData) GetVersion() uint32 {
+	if m != nil && m.Version != nil {
+		return *m.Version
 	}
 	return 0
 }
 
-func (this *BtreeMetaData) GetIndexCursor() int32 {
-	if this != nil && this.IndexCursor != nil {
-		return *this.IndexCursor
+func (m *BtreeMetaData) GetIndexCursor() int32 {
+	if m != nil && m.IndexCursor != nil {
+		return *m.IndexCursor
 	}
 	return 0
 }
@@ -92,20 +99,20 @@ type IndexMetaData struct {
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (this *IndexMetaData) Reset()         { *this = IndexMetaData{} }
-func (this *IndexMetaData) String() string { return proto.CompactTextString(this) }
-func (*IndexMetaData) ProtoMessage()       {}
+func (m *IndexMetaData) Reset()         { *m = IndexMetaData{} }
+func (m *IndexMetaData) String() string { return proto.CompactTextString(m) }
+func (*IndexMetaData) ProtoMessage()    {}
 
-func (this *IndexMetaData) GetId() int32 {
-	if this != nil && this.Id != nil {
-		return *this.Id
+func (m *IndexMetaData) GetId() int32 {
+	if m != nil && m.Id != nil {
+		return *m.Id
 	}
 	return 0
 }
 
-func (this *IndexMetaData) GetVersion() uint32 {
-	if this != nil && this.Version != nil {
-		return *this.Version
+func (m *IndexMetaData) GetVersion() uint32 {
+	if m != nil && m.Version != nil {
+		return *m.Version
 	}
 	return 0
 }
@@ -116,9 +123,23 @@ type NodeRecordMetaData struct {
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (this *NodeRecordMetaData) Reset()         { *this = NodeRecordMetaData{} }
-func (this *NodeRecordMetaData) String() string { return proto.CompactTextString(this) }
-func (*NodeRecordMetaData) ProtoMessage()       {}
+func (m *NodeRecordMetaData) Reset()         { *m = NodeRecordMetaData{} }
+func (m *NodeRecordMetaData) String() string { return proto.CompactTextString(m) }
+func (*NodeRecordMetaData) ProtoMessage()    {}
+
+func (m *NodeRecordMetaData) GetChildrens() []int32 {
+	if m != nil {
+		return m.Childrens
+	}
+	return nil
+}
+
+func (m *NodeRecordMetaData) GetKeys() [][]byte {
+	if m != nil {
+		return m.Keys
+	}
+	return nil
+}
 
 type LeafRecordMetaData struct {
 	Keys             [][]byte `protobuf:"bytes,1,rep,name=keys" json:"keys,omitempty"`
@@ -126,9 +147,23 @@ type LeafRecordMetaData struct {
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (this *LeafRecordMetaData) Reset()         { *this = LeafRecordMetaData{} }
-func (this *LeafRecordMetaData) String() string { return proto.CompactTextString(this) }
-func (*LeafRecordMetaData) ProtoMessage()       {}
+func (m *LeafRecordMetaData) Reset()         { *m = LeafRecordMetaData{} }
+func (m *LeafRecordMetaData) String() string { return proto.CompactTextString(m) }
+func (*LeafRecordMetaData) ProtoMessage()    {}
+
+func (m *LeafRecordMetaData) GetKeys() [][]byte {
+	if m != nil {
+		return m.Keys
+	}
+	return nil
+}
+
+func (m *LeafRecordMetaData) GetValues() [][]byte {
+	if m != nil {
+		return m.Values
+	}
+	return nil
+}
 
 func init() {
 }

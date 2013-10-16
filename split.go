@@ -13,7 +13,6 @@ func (l *Leaf) split(tree *Btree) (key []byte, left, right int32) {
 	left = l.GetId()
 	right = nleaf.GetId()
 	key = nleaf.Keys[0]
-	tree.nodes[nleaf.GetId()] = nleaf
 	return
 }
 
@@ -30,6 +29,5 @@ func (n *Node) split(tree *Btree) (key []byte, left, right int32) {
 	n.Childrens = n.Childrens[:mid+1]
 	left = n.GetId()
 	right = nnode.GetId()
-	tree.nodes[nnode.GetId()] = nnode
 	return
 }

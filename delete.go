@@ -9,8 +9,7 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 	index := n.locate(key)
 	if rst, clonedTreeNode, newKey := tree.nodes[n.Childrens[index]].deleteRecord(key, tree); rst {
 		clonedNode, _ := n.clone(tree).(*Node)
-		tree.nodes[clonedNode.GetId()] = clonedNode
-		clonedNode.Childrens[index] = *getTreeNodeID(clonedTreeNode)
+		clonedNode.Childrens[index] = clonedTreeNode.GetId()
 		if n.GetId() == tree.GetRoot() {
 			tree.cloneroot = clonedNode.GetId()
 		}
@@ -25,16 +24,14 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 		}
 		if len(clonedNode.Keys) > 0 {
 			var left int32
-			if getLeaf(clonedNode.Childrens[index-1], tree) != nil {
+			if tree.getLeaf(clonedNode.Childrens[index-1]) != nil {
 				left = clonedNode.mergeLeaf(
 					clonedNode.Childrens[index-1],
 					clonedNode.Childrens[index],
 					index-1,
 					tree)
 				if index == 1 && tmpKey == nil {
-					leaf := getLeaf(
-						clonedNode.Childrens[0],
-						tree)
+					leaf := tree.getLeaf(clonedNode.Childrens[0])
 					if leaf != nil && len(leaf.Keys) > 0 {
 						newKey = leaf.Keys[0]
 					}
@@ -50,13 +47,13 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 				clonedNode.Childrens[index-1] = left
 			}
 		}
-		markDup(*n.Id, tree)
+		tree.markDup(n.GetId())
 		return true, clonedNode, newKey
 	}
 	return false, nil, nil
 }
 
-//delete record in a lead
+//delete record in a leaf
 //first return deleted or not
 //second return cloneTreeNode
 func (l *Leaf) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
@@ -76,13 +73,11 @@ func (l *Leaf) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 		if l.GetId() == tree.GetRoot() {
 			tree.cloneroot = clonedLeaf.GetId()
 		}
-		tree.nodes[clonedLeaf.GetId()] = clonedLeaf
-		markDup(*l.Id, tree)
+		tree.markDup(l.GetId())
 		if index == 0 && len(clonedLeaf.Keys) > 0 {
 			return true, clonedLeaf, clonedLeaf.Keys[0]
-		} else {
-			return true, clonedLeaf, nil
 		}
+		return true, clonedLeaf, nil
 	}
 	return false, nil, nil
 }

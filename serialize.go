@@ -7,13 +7,17 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync/atomic"
 )
 
-// dump btree to disk
+// Dump btree to disk
 func (t *Btree) Dump(filename string) error {
+	if !atomic.CompareAndSwapInt32(&t.state, StateNormal, StateDump) {
+		return nil
+	}
 	t.Lock()
-	t.isSyning = true
 	snapversion := t.GetVersion()
+	t.Unlock()
 	size := len(t.nodes)
 	fd, err := os.OpenFile(filename+"_"+strconv.Itoa(int(snapversion)), os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0644)
 	defer fd.Close()
@@ -23,7 +27,6 @@ func (t *Btree) Dump(filename string) error {
 	}
 	fb := bufio.NewWriter(fd)
 	data, err := proto.Marshal(&t.BtreeMetaData)
-	t.Unlock()
 	if err != nil {
 		log.Fatal("encode tree info error ", err)
 	} else {
@@ -36,15 +39,16 @@ func (t *Btree) Dump(filename string) error {
 	for i := 0; i < size; i++ {
 		if leaf, ok := t.nodes[i].(*Leaf); ok {
 			if leaf.GetVersion() <= snapversion {
-				if data, err := serializeLeaf(leaf); err != nil {
+				var data []byte
+				var err error
+				if data, err = serializeLeaf(leaf); err != nil {
 					log.Fatal("encode error ", i, err)
 					return err
-				} else {
-					fb.Write(encodefixed32(uint64(LEAF)))
-					if _, err = fb.Write(data); err != nil {
-						log.Fatal("write file error", err, "at version", snapversion)
-						return err
-					}
+				}
+				fb.Write(encodefixed32(uint64(isLeaf)))
+				if _, err = fb.Write(data); err != nil {
+					log.Fatal("write file error", err, "at version", snapversion)
+					return err
 				}
 			}
 		}
@@ -53,7 +57,7 @@ func (t *Btree) Dump(filename string) error {
 				if data, err := serializeNode(node); err != nil {
 					log.Fatal("encode error ", i, err)
 				} else {
-					fb.Write(encodefixed32(uint64(NODE)))
+					fb.Write(encodefixed32(uint64(isNode)))
 					if _, err = fb.Write(data); err != nil {
 						log.Fatal("write file error", err, "at version", snapversion)
 						return err
@@ -66,48 +70,45 @@ func (t *Btree) Dump(filename string) error {
 		log.Fatal("file flush failed ", filename, "version ", snapversion, err)
 		return err
 	}
-	go t.gc()
-	t.Lock()
-	t.isSyning = false
-	t.Unlock()
+	atomic.CompareAndSwapInt32(&t.state, StateDump, StateNormal)
 	return nil
 }
 
 func serializeLeaf(leaf *Leaf) ([]byte, error) {
 	var rst []byte
-	if data, err := proto.Marshal(&leaf.IndexMetaData); err != nil {
+	var data []byte
+	var err error
+	if data, err = proto.Marshal(&leaf.IndexMetaData); err != nil {
 		return rst, err
-	} else {
-		rst = append(rst, encodefixed32(uint64(len(data)))...)
-		rst = append(rst, data...)
 	}
-	if data, err := proto.Marshal(&leaf.LeafRecordMetaData); err != nil {
+	rst = append(rst, encodefixed32(uint64(len(data)))...)
+	rst = append(rst, data...)
+	if data, err = proto.Marshal(&leaf.LeafRecordMetaData); err != nil {
 		return rst, err
-	} else {
-		rst = append(rst, encodefixed32(uint64(len(data)))...)
-		rst = append(rst, data...)
 	}
+	rst = append(rst, encodefixed32(uint64(len(data)))...)
+	rst = append(rst, data...)
 	return rst, nil
 }
 
 func serializeNode(node *Node) ([]byte, error) {
 	var rst []byte
-	if data, err := proto.Marshal(&node.IndexMetaData); err != nil {
+	var data []byte
+	var err error
+	if data, err = proto.Marshal(&node.IndexMetaData); err != nil {
 		return rst, err
-	} else {
-		rst = append(rst, encodefixed32(uint64(len(data)))...)
-		rst = append(rst, data...)
 	}
-	if data, err := proto.Marshal(&node.NodeRecordMetaData); err != nil {
+	rst = append(rst, encodefixed32(uint64(len(data)))...)
+	rst = append(rst, data...)
+	if data, err = proto.Marshal(&node.NodeRecordMetaData); err != nil {
 		return rst, err
-	} else {
-		rst = append(rst, encodefixed32(uint64(len(data)))...)
-		rst = append(rst, data...)
 	}
+	rst = append(rst, encodefixed32(uint64(len(data)))...)
+	rst = append(rst, data...)
 	return rst, nil
 }
 
-// restore btree from disk
+// Restore btree from disk
 func Restore(filename string) (tree *Btree, err error) {
 	fd, err := os.Open(filename)
 	defer fd.Close()
@@ -116,8 +117,8 @@ func Restore(filename string) (tree *Btree, err error) {
 		return
 	}
 	tree = new(Btree)
-	tree.nodes = make([]TreeNode, SIZE)
-	tree.isSyning = false
+	tree.state = StateNormal
+	tree.nodes = make([]TreeNode, TreeSize)
 	reader := bufio.NewReader(fd)
 	buf, err := readBuf(4, reader)
 	if err != nil {
@@ -160,14 +161,14 @@ func Restore(filename string) (tree *Btree, err error) {
 			break
 		}
 		switch dataType {
-		case NODE:
+		case isNode:
 			{
 				node := new(Node)
 				proto.Unmarshal(dataRecord, &node.IndexMetaData)
 				proto.Unmarshal(dataRecord2, &node.NodeRecordMetaData)
 				tree.nodes[node.GetId()] = node
 			}
-		case LEAF:
+		case isLeaf:
 			{
 				leaf := new(Leaf)
 				proto.Unmarshal(dataRecord, &leaf.IndexMetaData)

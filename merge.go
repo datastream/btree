@@ -2,14 +2,14 @@ package btree
 
 // merge leaf
 func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) int32 {
-	left := getLeaf(leftID, tree)
-	right := getLeaf(rightID, tree)
+	left := tree.getLeaf(leftID)
+	right := tree.getLeaf(rightID)
 	if (len(left.Values) + len(right.Values)) > int(tree.GetLeafMax()) {
 		return -1
 	}
 	// clone left child
 	leftClone := left.clone(tree).(*Leaf)
-	id := *getTreeNodeID(leftClone)
+	id := leftClone.GetId()
 	tree.nodes[id] = leftClone
 	n.Childrens[index] = id
 	// remove rightID
@@ -25,21 +25,21 @@ func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) in
 	leftClone.Values = append(leftClone.Values, right.Values...)
 	leftClone.Keys = append(leftClone.Keys, right.Keys...)
 	// cleanup old data
-	markDup(leftID, tree)
-	markDup(rightID, tree)
-	return *leftClone.Id
+	tree.markDup(leftID)
+	tree.markDup(rightID)
+	return leftClone.GetId()
 }
 
 // merge node
 func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) int32 {
-	left := getNode(leftID, tree)
-	right := getNode(rightID, tree)
+	left := tree.getNode(leftID)
+	right := tree.getNode(rightID)
 	if len(left.Keys)+len(right.Keys) > int(tree.GetNodeMax()) {
 		return -1
 	}
 	// clone left node
 	leftClone := left.clone(tree).(*Node)
-	id := *getTreeNodeID(leftClone)
+	id := leftClone.GetId()
 	tree.nodes[id] = leftClone
 	n.Childrens[index] = id
 	// merge key
@@ -59,7 +59,7 @@ func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) in
 		n.insertOnce(key, left, right, tree)
 	}
 	// cleanup old
-	markDup(leftID, tree)
-	markDup(rightID, tree)
-	return *leftClone.Id
+	tree.markDup(leftID)
+	tree.markDup(rightID)
+	return leftClone.GetId()
 }
