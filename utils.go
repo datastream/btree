@@ -150,7 +150,7 @@ func (t *Btree) gc() {
 				case *Leaf:
 					*t.LeafCount--
 				default:
-					atomic.CompareAndSwapInt32(&t.state, StateDump, StateNormal)
+					atomic.CompareAndSwapInt32(&t.state, StateGc, StateNormal)
 					continue
 				}
 				t.FreeList = append(t.FreeList, id)
