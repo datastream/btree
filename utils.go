@@ -141,6 +141,7 @@ func (l *Leaf) clone(tree *Btree) TreeNode {
 //gc dupnodelist
 func (t *Btree) gc() {
 	for {
+		t.Lock()
 		if atomic.CompareAndSwapInt32(&t.state, StateNormal, StateGc) {
 			if len(t.dupnodelist) > 0 {
 				id := t.dupnodelist[len(t.dupnodelist)-1]
@@ -160,5 +161,6 @@ func (t *Btree) gc() {
 		} else {
 			time.Sleep(time.Second)
 		}
+		t.Unlock()
 	}
 }

@@ -8,7 +8,7 @@ import (
 // Btree metadata
 type Btree struct {
 	BtreeMetaData
-	sync.Mutex
+	sync.RWMutex
 	nodes       []TreeNode
 	state       int32
 	cloneroot   int32
@@ -145,8 +145,8 @@ func (t *Btree) Delete(key []byte) bool {
 
 // Search return value
 func (t *Btree) Search(key []byte) []byte {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 	return t.nodes[t.GetRoot()].searchRecord(key, t)
 }
 
