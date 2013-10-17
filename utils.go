@@ -3,8 +3,8 @@ package btree
 import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 // TreeNode interface
@@ -62,12 +62,12 @@ func (t *Btree) newNode() *Node {
 }
 
 //mark node/leaf duplicated
-func (t *Btree)markDup(id int32) {
+func (t *Btree) markDup(id int32) {
 	t.dupnodelist = append(t.dupnodelist, id)
 }
 
 //get node by id
-func (t *Btree)getNode(id int32) *Node {
+func (t *Btree) getNode(id int32) *Node {
 	if node, ok := t.nodes[id].(*Node); ok {
 		return node
 	}
@@ -75,7 +75,7 @@ func (t *Btree)getNode(id int32) *Node {
 }
 
 //get leaf by id
-func (t *Btree)getLeaf(id int32) *Leaf {
+func (t *Btree) getLeaf(id int32) *Leaf {
 	if leaf, ok := t.nodes[id].(*Leaf); ok {
 		return leaf
 	}
