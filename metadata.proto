@@ -2,28 +2,25 @@ package btree;
 
 message BtreeMetaData
 {
-  optional int32 root = 1;
-  optional int32 leaf_count = 2;
-  optional int32 node_count = 3;
-  optional int32 leaf_max = 4;
-  optional int32 node_max = 5;
-  repeated int32 free_list = 6;
-  optional int32 size = 7;
-  optional uint32 version = 8;
-  optional int32 index_cursor = 9;
-}
-message IndexMetaData
-{
-  optional int32 id = 1;
-  optional uint32 version = 2;
+  optional int64 root = 1;
+  optional int64 leaf_count = 2;
+  optional int64 node_count = 3;
+  optional int64 leaf_max = 4;
+  optional int64 node_max = 5;
+  optional int64 size = 6;
+  optional int64 index_cursor = 7;
 }
 message NodeRecordMetaData
 {
-  repeated int32 childrens = 1;
-  repeated bytes keys = 2;
+  optional int64 id = 1;
+  repeated int64 childrens = 2;
+  repeated bytes keys = 3;
+  optional int32 is_dirt =4;
 }
 message LeafRecordMetaData
 {
-  repeated bytes keys = 1;
-  repeated bytes values = 2;
+  optional int64 id = 1;
+  repeated bytes keys = 2;
+  repeated bytes values = 3;
+  optional int32 is_dirt =4;
 }

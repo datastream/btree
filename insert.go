@@ -2,7 +2,26 @@ package btree
 
 import (
 	"bytes"
+	"code.google.com/p/goprotobuf/proto"
 )
+
+// Insert can insert record into a btree
+func (t *Btree) insert(record *Record) bool {
+	rst, clonedTreeNode := t.nodes[t.GetRoot()].insertRecord(record, t)
+	if rst {
+		var newroot TreeNode
+		if len(clonedTreeNode.GetKeys()) > int(t.GetNodeMax()) {
+			nnode := t.newNode()
+			key, left, right := clonedTreeNode.split(t)
+			nnode.insertOnce(key, left, right, t)
+			newroot = nnode
+		} else {
+			newroot = clonedTreeNode
+		}
+		t.Root = proto.Int64(newroot.GetId())
+	}
+	return rst
+}
 
 // insert node
 func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
@@ -14,7 +33,6 @@ func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 			key, left, right := clonedTreeNode.split(tree)
 			clonedNode.insertOnce(key, left, right, tree)
 		}
-		tree.markDup(n.GetId())
 		return true, clonedNode
 	}
 	return false, nil
@@ -33,7 +51,6 @@ func (l *Leaf) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 		clonedLeaf = l
 	} else {
 		clonedLeaf, _ = l.clone(tree).(*Leaf)
-		tree.markDup(l.GetId())
 	}
 	clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
 		append([][]byte{record.Key}, clonedLeaf.Keys[index:]...)...)
@@ -43,13 +60,13 @@ func (l *Leaf) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
 }
 
 // Insert key into tree node
-func (n *Node) insertOnce(key []byte, leftID int32, rightID int32, tree *Btree) {
+func (n *Node) insertOnce(key []byte, leftID int64, rightID int64, tree *Btree) {
 	index := n.locate(key)
 	if len(n.Keys) == 0 {
-		n.Childrens = append([]int32{leftID}, rightID)
+		n.Childrens = append([]int64{leftID}, rightID)
 	} else {
 		n.Childrens = append(n.Childrens[:index+1],
-			append([]int32{rightID}, n.Childrens[index+1:]...)...)
+			append([]int64{rightID}, n.Childrens[index+1:]...)...)
 	}
 	n.Keys = append(n.Keys[:index], append([][]byte{key}, n.Keys[index:]...)...)
 }

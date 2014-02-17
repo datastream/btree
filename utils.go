@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
 	"sync/atomic"
-	"time"
 )
+
+type treeOperation struct {
+	Action   string
+	Payload  interface{}
+	restChan chan interface{}
+}
 
 // TreeNode interface
 // node, leaf support this interface
@@ -14,22 +19,24 @@ type TreeNode interface {
 	deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte)
 	updateRecord(recode *Record, tree *Btree) (bool, TreeNode)
 	searchRecord(key []byte, tree *Btree) []byte
-	split(tree *Btree) (key []byte, left, right int32)
+	split(tree *Btree) (key []byte, left, right int64)
 	locate(key []byte) int
-	GetId() int32
+	GetId() int64
 	GetKeys() [][]byte
+	isReleaseAble() bool
 }
 
 // genrate node/leaf id
-func (t *Btree) genrateID() int32 {
-	var id int32
-	if len(t.FreeList) > 0 {
-		id = t.FreeList[len(t.FreeList)-1]
-		t.FreeList = t.FreeList[:len(t.FreeList)-1]
+func (t *Btree) genrateID() int64 {
+	var id int64
+	size := len(t.dupnodelist)
+	if size > 0 {
+		id = t.dupnodelist[size-1]
+		t.dupnodelist = t.dupnodelist[:size-1]
 	} else {
 		if t.GetIndexCursor() >= t.GetSize() {
 			t.nodes = append(t.nodes, make([]TreeNode, TreeSize)...)
-			*t.Size += int32(TreeSize)
+			*t.Size += int64(TreeSize)
 		}
 		id = t.GetIndexCursor()
 		*t.IndexCursor++
@@ -42,8 +49,10 @@ func (t *Btree) newLeaf() *Leaf {
 	*t.LeafCount++
 	id := t.genrateID()
 	leaf := &Leaf{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(id),
-			Version: proto.Uint32(t.GetVersion())},
+		LeafRecordMetaData: LeafRecordMetaData{
+			Id:     proto.Int64(id),
+			IsDirt: proto.Int32(0),
+		},
 	}
 	t.nodes[id] = leaf
 	return leaf
@@ -54,20 +63,17 @@ func (t *Btree) newNode() *Node {
 	*t.NodeCount++
 	id := t.genrateID()
 	node := &Node{
-		IndexMetaData: IndexMetaData{Id: proto.Int32(id),
-			Version: proto.Uint32(t.GetVersion())},
+		NodeRecordMetaData: NodeRecordMetaData{
+			Id:     proto.Int64(id),
+			IsDirt: proto.Int32(0),
+		},
 	}
 	t.nodes[id] = node
 	return node
 }
 
-//mark node/leaf duplicated
-func (t *Btree) markDup(id int32) {
-	t.dupnodelist = append(t.dupnodelist, id)
-}
-
 //get node by id
-func (t *Btree) getNode(id int32) *Node {
+func (t *Btree) getNode(id int64) *Node {
 	if node, ok := t.nodes[id].(*Node); ok {
 		return node
 	}
@@ -75,7 +81,7 @@ func (t *Btree) getNode(id int32) *Node {
 }
 
 //get leaf by id
-func (t *Btree) getLeaf(id int32) *Leaf {
+func (t *Btree) getLeaf(id int64) *Leaf {
 	if leaf, ok := t.nodes[id].(*Leaf); ok {
 		return leaf
 	}
@@ -123,8 +129,9 @@ func (n *Node) clone(tree *Btree) TreeNode {
 	nnode := tree.newNode()
 	nnode.Keys = make([][]byte, len(n.Keys))
 	copy(nnode.Keys, n.Keys)
-	nnode.Childrens = make([]int32, len(n.Childrens))
+	nnode.Childrens = make([]int64, len(n.Childrens))
 	copy(nnode.Childrens, n.Childrens)
+	atomic.StoreInt32(n.IsDirt, 1)
 	return nnode
 }
 
@@ -135,32 +142,29 @@ func (l *Leaf) clone(tree *Btree) TreeNode {
 	copy(nleaf.Keys, l.Keys)
 	nleaf.Values = make([][]byte, len(l.Values))
 	copy(nleaf.Values, l.Values)
+	atomic.StoreInt32(l.IsDirt, 1)
 	return nleaf
 }
 
 //gc dupnodelist
 func (t *Btree) gc() {
-	for {
-		t.Lock()
-		if atomic.CompareAndSwapInt32(&t.state, StateNormal, StateGc) {
-			if len(t.dupnodelist) > 0 {
-				id := t.dupnodelist[len(t.dupnodelist)-1]
-				switch t.nodes[id].(type) {
-				case *Node:
-					*t.NodeCount--
-				case *Leaf:
-					*t.LeafCount--
-				default:
-					atomic.CompareAndSwapInt32(&t.state, StateGc, StateNormal)
-					continue
-				}
-				t.FreeList = append(t.FreeList, id)
-				t.dupnodelist = t.dupnodelist[:len(t.dupnodelist)-1]
-				atomic.CompareAndSwapInt32(&t.state, StateGc, StateNormal)
-			}
-		} else {
-			time.Sleep(time.Second)
+	for _, v := range t.nodes {
+		if v != nil && v.isReleaseAble() {
+			t.dupnodelist = append(t.dupnodelist, v.GetId())
 		}
-		t.Unlock()
 	}
+}
+
+func (n *Node) isReleaseAble() bool {
+	if atomic.LoadInt32(n.IsDirt) > 0 {
+		return true
+	}
+	return false
+}
+
+func (l *Leaf) isReleaseAble() bool {
+	if atomic.LoadInt32(l.IsDirt) > 0 {
+		return true
+	}
+	return false
 }

@@ -1,4 +1,4 @@
-treedump_*
+treedump*
 btree.test
 *.out
 test.sh

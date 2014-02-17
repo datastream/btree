@@ -4,6 +4,11 @@ import (
 	"bytes"
 )
 
+// Search return value
+func (t *Btree) search(key []byte) []byte {
+	return t.nodes[t.GetRoot()].searchRecord(key, t)
+}
+
 // node search record
 func (n *Node) searchRecord(key []byte, tree *Btree) []byte {
 	index := n.locate(key)

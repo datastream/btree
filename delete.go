@@ -2,7 +2,24 @@ package btree
 
 import (
 	"bytes"
+	"code.google.com/p/goprotobuf/proto"
+	"sync/atomic"
 )
+
+func (t *Btree) dodelete(key []byte) bool {
+	rst, clonedTreeNode, _ := t.nodes[t.GetRoot()].deleteRecord(key, t)
+	if rst {
+		newroot := clonedTreeNode
+		if len(clonedTreeNode.GetKeys()) == 0 {
+			if clonedNode, ok := clonedTreeNode.(*Node); ok {
+				newroot = t.nodes[clonedNode.Childrens[0]]
+				atomic.StoreInt32(clonedNode.IsDirt, 1)
+			}
+		}
+		t.Root = proto.Int64(newroot.GetId())
+	}
+	return rst
+}
 
 // delete in cloned node
 func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
@@ -10,9 +27,6 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 	if rst, clonedTreeNode, newKey := tree.nodes[n.Childrens[index]].deleteRecord(key, tree); rst {
 		clonedNode, _ := n.clone(tree).(*Node)
 		clonedNode.Childrens[index] = clonedTreeNode.GetId()
-		if n.GetId() == tree.GetRoot() {
-			tree.cloneroot = clonedNode.GetId()
-		}
 		tmpKey := newKey
 		if newKey != nil {
 			if clonedNode.replace(key, newKey) {
@@ -23,7 +37,7 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 			index = 1
 		}
 		if len(clonedNode.Keys) > 0 {
-			var left int32
+			var left int64
 			if tree.getLeaf(clonedNode.Childrens[index-1]) != nil {
 				left = clonedNode.mergeLeaf(
 					clonedNode.Childrens[index-1],
@@ -47,7 +61,6 @@ func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 				clonedNode.Childrens[index-1] = left
 			}
 		}
-		tree.markDup(n.GetId())
 		return true, clonedNode, newKey
 	}
 	return false, nil, nil
@@ -70,10 +83,6 @@ func (l *Leaf) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
 			clonedLeaf.Keys[index+1:]...)
 		clonedLeaf.Values = append(clonedLeaf.Values[:index],
 			clonedLeaf.Values[index+1:]...)
-		if l.GetId() == tree.GetRoot() {
-			tree.cloneroot = clonedLeaf.GetId()
-		}
-		tree.markDup(l.GetId())
 		if index == 0 && len(clonedLeaf.Keys) > 0 {
 			return true, clonedLeaf, clonedLeaf.Keys[0]
 		}

@@ -1,7 +1,11 @@
 package btree
 
+import (
+	"sync/atomic"
+)
+
 // merge leaf
-func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) int32 {
+func (n *Node) mergeLeaf(leftID int64, rightID int64, index int, tree *Btree) int64 {
 	left := tree.getLeaf(leftID)
 	right := tree.getLeaf(rightID)
 	if (len(left.Values) + len(right.Values)) > int(tree.GetLeafMax()) {
@@ -17,21 +21,19 @@ func (n *Node) mergeLeaf(leftID int32, rightID int32, index int, tree *Btree) in
 		n.Childrens = n.Childrens[:index]
 		n.Keys = n.Keys[:index-1]
 	} else {
-		n.Childrens = append(n.Childrens[:index+1],
-			n.Childrens[index+2:]...)
+		n.Childrens = append(n.Childrens[:index+1], n.Childrens[index+2:]...)
 		n.Keys = append(n.Keys[:index], n.Keys[index+1:]...)
 	}
 	// add right to left
 	leftClone.Values = append(leftClone.Values, right.Values...)
 	leftClone.Keys = append(leftClone.Keys, right.Keys...)
 	// cleanup old data
-	tree.markDup(leftID)
-	tree.markDup(rightID)
+	atomic.StoreInt32(tree.getLeaf(rightID).IsDirt, 1)
 	return leftClone.GetId()
 }
 
 // merge node
-func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) int32 {
+func (n *Node) mergeNode(leftID int64, rightID int64, index int, tree *Btree) int64 {
 	left := tree.getNode(leftID)
 	right := tree.getNode(rightID)
 	if len(left.Keys)+len(right.Keys) > int(tree.GetNodeMax()) {
@@ -43,9 +45,7 @@ func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) in
 	tree.nodes[id] = leftClone
 	n.Childrens[index] = id
 	// merge key
-	leftClone.Keys = append(leftClone.Keys,
-		append([][]byte{n.Keys[index]},
-			right.Keys...)...)
+	leftClone.Keys = append(leftClone.Keys, append([][]byte{n.Keys[index]}, right.Keys...)...)
 	// merge childrens
 	leftClone.Childrens = append(leftClone.Childrens, right.Childrens...)
 	// remove old key
@@ -59,7 +59,6 @@ func (n *Node) mergeNode(leftID int32, rightID int32, index int, tree *Btree) in
 		n.insertOnce(key, left, right, tree)
 	}
 	// cleanup old
-	tree.markDup(leftID)
-	tree.markDup(rightID)
+	atomic.StoreInt32(tree.getNode(rightID).IsDirt, 1)
 	return leftClone.GetId()
 }

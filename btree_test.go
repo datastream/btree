@@ -4,7 +4,6 @@ import (
 	"../btree"
 	"strconv"
 	"testing"
-	"time"
 )
 
 func TestInsert(t *testing.T) {
@@ -15,24 +14,21 @@ func TestInsert(t *testing.T) {
 			Key:   []byte(strconv.Itoa(i)),
 			Value: []byte(strconv.Itoa(i)),
 		}
-		go func() {
-			if stat := tree.Insert(rd); !stat {
-				t.Fatal("Insert Failed", i)
-			}
-		}()
+		if stat := tree.Insert(rd); !stat {
+			t.Fatal("Insert Failed", i)
+		}
 	}
 }
 func TestSearch(t *testing.T) {
 	tree := btree.NewBtreeSize(2, 3)
-	size := 100000
+	size := 100
 	for i := 0; i < size; i++ {
 		rd := &btree.Record{
 			Key:   []byte(strconv.Itoa(i)),
 			Value: []byte(strconv.Itoa(i)),
 		}
-		go tree.Insert(rd)
+		tree.Insert(rd)
 	}
-	time.Sleep(time.Second * 10)
 	for i := 0; i < size; i++ {
 		if string(tree.Search([]byte(strconv.Itoa(i)))) != strconv.Itoa(i) {
 			t.Fatal("Find Failed", i)
@@ -41,7 +37,7 @@ func TestSearch(t *testing.T) {
 }
 func TestUpdate(t *testing.T) {
 	tree := btree.NewBtreeSize(3, 2)
-	size := 100000
+	size := 100
 	for i := 0; i < size; i++ {
 		rd := &btree.Record{
 			Key:   []byte(strconv.Itoa(i)),
@@ -84,7 +80,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestDump(t *testing.T) {
+func TestMarshal(t *testing.T) {
 	tree := btree.NewBtreeSize(3, 3)
 	size := 100
 	for i := 0; i < size; i++ {
@@ -94,19 +90,23 @@ func TestDump(t *testing.T) {
 		}
 		tree.Insert(rd)
 	}
-	tree.Dump("treedump")
+	if err := tree.Marshal("treedump1"); err != nil {
+		t.Fatal(err)
+	}
 }
-func TestRestore(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	size := 100
-	if tree, err := btree.Restore("treedump_100"); err == nil {
-		for i := 0; i < size; i++ {
-			if string(tree.Search([]byte(strconv.Itoa(i)))) != strconv.Itoa(i) {
-				t.Fatal("Find Failed", i)
-			}
+	tree, err := btree.Unmarshal("treedump1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < size; i++ {
+		if string(tree.Search([]byte(strconv.Itoa(i)))) != strconv.Itoa(i) {
+			t.Fatal("Find Failed", i)
 		}
 	}
 }
-func BenchmarkBtreeInsert(t *testing.B) {
+func BenchmarkInsert(t *testing.B) {
 	size := 100000
 	tree := btree.NewBtree()
 	for i := 0; i < size; i++ {
@@ -118,11 +118,11 @@ func BenchmarkBtreeInsert(t *testing.B) {
 			t.Fatal("Insert Failed", i)
 		}
 	}
-	tree.Dump("treedump")
+	tree.Marshal("treedump")
 }
-func BenchmarkBtreeSearch(t *testing.B) {
+func BenchmarkSearch(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_100000"); err == nil {
+	if tree, err := btree.Unmarshal("treedump"); err == nil {
 		for i := 0; i < size; i++ {
 			if string(tree.Search([]byte(strconv.Itoa(i)))) != strconv.Itoa(i) {
 				t.Fatal("Find Failed", i)
@@ -130,9 +130,9 @@ func BenchmarkBtreeSearch(t *testing.B) {
 		}
 	}
 }
-func BenchmarkBtreeUpdate(t *testing.B) {
+func BenchmarkUpdate(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_100000"); err == nil {
+	if tree, err := btree.Unmarshal("treedump"); err == nil {
 		for i := 0; i < size; i++ {
 			rd := &btree.Record{
 				Key:   []byte(strconv.Itoa(i)),
@@ -144,9 +144,9 @@ func BenchmarkBtreeUpdate(t *testing.B) {
 		}
 	}
 }
-func BenchmarkBtreeDelete(t *testing.B) {
+func BenchmarkDelete(t *testing.B) {
 	size := 100000
-	if tree, err := btree.Restore("treedump_100000"); err == nil {
+	if tree, err := btree.Unmarshal("treedump"); err == nil {
 		for i := 0; i < size; i++ {
 			if stat := tree.Delete([]byte(strconv.Itoa(i))); !stat {
 				t.Fatal("delete Failed", i)
