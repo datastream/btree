@@ -156,14 +156,14 @@ func (t *Btree) gc() {
 }
 
 func (n *Node) isReleaseAble() bool {
-	if atomic.LoadInt32(n.IsDirt) > 0 {
+	if atomic.CompareAndSwapInt32(n.IsDirt, 1, 0) {
 		return true
 	}
 	return false
 }
 
 func (l *Leaf) isReleaseAble() bool {
-	if atomic.LoadInt32(l.IsDirt) > 0 {
+	if atomic.CompareAndSwapInt32(l.IsDirt, 1, 0){
 		return true
 	}
 	return false

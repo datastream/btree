@@ -39,7 +39,7 @@ Delete a record, if delete success, it return true
 
 Search a key, if find success, it return value
 
-### btree.Dump(filename)
+### btree.Marshal(filename)
 
 Write btree data into disk.
 
@@ -47,7 +47,7 @@ Write btree data into disk.
     tree.Dump("treedump")
     # filename should be "treedump_100"
 
-### btree.Restore(filename)
+### btree.Unmarshal(filename)
 
 Read btree from disk
 
