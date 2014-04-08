@@ -13,111 +13,127 @@ var _ = proto.Marshal
 var _ = &json.SyntaxError{}
 var _ = math.Inf
 
-type BtreeMetaData struct {
+type BtreeMetadata struct {
 	Root             *int64 `protobuf:"varint,1,opt,name=root" json:"root,omitempty"`
-	LeafCount        *int64 `protobuf:"varint,2,opt,name=leaf_count" json:"leaf_count,omitempty"`
-	NodeCount        *int64 `protobuf:"varint,3,opt,name=node_count" json:"node_count,omitempty"`
+	Size             *int64 `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
 	LeafMax          *int64 `protobuf:"varint,4,opt,name=leaf_max" json:"leaf_max,omitempty"`
 	NodeMax          *int64 `protobuf:"varint,5,opt,name=node_max" json:"node_max,omitempty"`
-	Size             *int64 `protobuf:"varint,6,opt,name=size" json:"size,omitempty"`
 	IndexCursor      *int64 `protobuf:"varint,7,opt,name=index_cursor" json:"index_cursor,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *BtreeMetaData) Reset()         { *m = BtreeMetaData{} }
-func (m *BtreeMetaData) String() string { return proto.CompactTextString(m) }
-func (*BtreeMetaData) ProtoMessage()    {}
+func (m *BtreeMetadata) Reset()         { *m = BtreeMetadata{} }
+func (m *BtreeMetadata) String() string { return proto.CompactTextString(m) }
+func (*BtreeMetadata) ProtoMessage()    {}
 
-func (m *BtreeMetaData) GetRoot() int64 {
+func (m *BtreeMetadata) GetRoot() int64 {
 	if m != nil && m.Root != nil {
 		return *m.Root
 	}
 	return 0
 }
 
-func (m *BtreeMetaData) GetLeafCount() int64 {
-	if m != nil && m.LeafCount != nil {
-		return *m.LeafCount
-	}
-	return 0
-}
-
-func (m *BtreeMetaData) GetNodeCount() int64 {
-	if m != nil && m.NodeCount != nil {
-		return *m.NodeCount
-	}
-	return 0
-}
-
-func (m *BtreeMetaData) GetLeafMax() int64 {
-	if m != nil && m.LeafMax != nil {
-		return *m.LeafMax
-	}
-	return 0
-}
-
-func (m *BtreeMetaData) GetNodeMax() int64 {
-	if m != nil && m.NodeMax != nil {
-		return *m.NodeMax
-	}
-	return 0
-}
-
-func (m *BtreeMetaData) GetSize() int64 {
+func (m *BtreeMetadata) GetSize() int64 {
 	if m != nil && m.Size != nil {
 		return *m.Size
 	}
 	return 0
 }
 
-func (m *BtreeMetaData) GetIndexCursor() int64 {
+func (m *BtreeMetadata) GetLeafMax() int64 {
+	if m != nil && m.LeafMax != nil {
+		return *m.LeafMax
+	}
+	return 0
+}
+
+func (m *BtreeMetadata) GetNodeMax() int64 {
+	if m != nil && m.NodeMax != nil {
+		return *m.NodeMax
+	}
+	return 0
+}
+
+func (m *BtreeMetadata) GetIndexCursor() int64 {
 	if m != nil && m.IndexCursor != nil {
 		return *m.IndexCursor
 	}
 	return 0
 }
 
-type NodeRecordMetaData struct {
+type TreeNode struct {
+	NodeType         *int32 `protobuf:"varint,1,opt,name=node_type" json:"node_type,omitempty"`
+	Leaf             *Leaf  `protobuf:"bytes,2,opt,name=leaf" json:"leaf,omitempty"`
+	Node             *Node  `protobuf:"bytes,3,opt,name=node" json:"node,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TreeNode) Reset()         { *m = TreeNode{} }
+func (m *TreeNode) String() string { return proto.CompactTextString(m) }
+func (*TreeNode) ProtoMessage()    {}
+
+func (m *TreeNode) GetNodeType() int32 {
+	if m != nil && m.NodeType != nil {
+		return *m.NodeType
+	}
+	return 0
+}
+
+func (m *TreeNode) GetLeaf() *Leaf {
+	if m != nil {
+		return m.Leaf
+	}
+	return nil
+}
+
+func (m *TreeNode) GetNode() *Node {
+	if m != nil {
+		return m.Node
+	}
+	return nil
+}
+
+type Node struct {
 	Id               *int64   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Childrens        []int64  `protobuf:"varint,2,rep,name=childrens" json:"childrens,omitempty"`
-	Keys             [][]byte `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
+	Keys             [][]byte `protobuf:"bytes,2,rep,name=keys" json:"keys,omitempty"`
+	Childrens        []int64  `protobuf:"varint,3,rep,name=childrens" json:"childrens,omitempty"`
 	IsDirt           *int32   `protobuf:"varint,4,opt,name=is_dirt" json:"is_dirt,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *NodeRecordMetaData) Reset()         { *m = NodeRecordMetaData{} }
-func (m *NodeRecordMetaData) String() string { return proto.CompactTextString(m) }
-func (*NodeRecordMetaData) ProtoMessage()    {}
+func (m *Node) Reset()         { *m = Node{} }
+func (m *Node) String() string { return proto.CompactTextString(m) }
+func (*Node) ProtoMessage()    {}
 
-func (m *NodeRecordMetaData) GetId() int64 {
+func (m *Node) GetId() int64 {
 	if m != nil && m.Id != nil {
 		return *m.Id
 	}
 	return 0
 }
 
-func (m *NodeRecordMetaData) GetChildrens() []int64 {
-	if m != nil {
-		return m.Childrens
-	}
-	return nil
-}
-
-func (m *NodeRecordMetaData) GetKeys() [][]byte {
+func (m *Node) GetKeys() [][]byte {
 	if m != nil {
 		return m.Keys
 	}
 	return nil
 }
 
-func (m *NodeRecordMetaData) GetIsDirt() int32 {
+func (m *Node) GetChildrens() []int64 {
+	if m != nil {
+		return m.Childrens
+	}
+	return nil
+}
+
+func (m *Node) GetIsDirt() int32 {
 	if m != nil && m.IsDirt != nil {
 		return *m.IsDirt
 	}
 	return 0
 }
 
-type LeafRecordMetaData struct {
+type Leaf struct {
 	Id               *int64   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	Keys             [][]byte `protobuf:"bytes,2,rep,name=keys" json:"keys,omitempty"`
 	Values           [][]byte `protobuf:"bytes,3,rep,name=values" json:"values,omitempty"`
@@ -125,36 +141,68 @@ type LeafRecordMetaData struct {
 	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *LeafRecordMetaData) Reset()         { *m = LeafRecordMetaData{} }
-func (m *LeafRecordMetaData) String() string { return proto.CompactTextString(m) }
-func (*LeafRecordMetaData) ProtoMessage()    {}
+func (m *Leaf) Reset()         { *m = Leaf{} }
+func (m *Leaf) String() string { return proto.CompactTextString(m) }
+func (*Leaf) ProtoMessage()    {}
 
-func (m *LeafRecordMetaData) GetId() int64 {
+func (m *Leaf) GetId() int64 {
 	if m != nil && m.Id != nil {
 		return *m.Id
 	}
 	return 0
 }
 
-func (m *LeafRecordMetaData) GetKeys() [][]byte {
+func (m *Leaf) GetKeys() [][]byte {
 	if m != nil {
 		return m.Keys
 	}
 	return nil
 }
 
-func (m *LeafRecordMetaData) GetValues() [][]byte {
+func (m *Leaf) GetValues() [][]byte {
 	if m != nil {
 		return m.Values
 	}
 	return nil
 }
 
-func (m *LeafRecordMetaData) GetIsDirt() int32 {
+func (m *Leaf) GetIsDirt() int32 {
 	if m != nil && m.IsDirt != nil {
 		return *m.IsDirt
 	}
 	return 0
+}
+
+type TreeLog struct {
+	Action           *string `protobuf:"bytes,1,opt,name=action" json:"action,omitempty"`
+	Key              []byte  `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
+	Value            []byte  `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *TreeLog) Reset()         { *m = TreeLog{} }
+func (m *TreeLog) String() string { return proto.CompactTextString(m) }
+func (*TreeLog) ProtoMessage()    {}
+
+func (m *TreeLog) GetAction() string {
+	if m != nil && m.Action != nil {
+		return *m.Action
+	}
+	return ""
+}
+
+func (m *TreeLog) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *TreeLog) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
 }
 
 func init() {

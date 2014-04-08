@@ -1,26 +1,40 @@
 package btree;
 
-message BtreeMetaData
+message btree_metadata
 {
   optional int64 root = 1;
-  optional int64 leaf_count = 2;
-  optional int64 node_count = 3;
+  optional int64 size = 3;
   optional int64 leaf_max = 4;
   optional int64 node_max = 5;
-  optional int64 size = 6;
   optional int64 index_cursor = 7;
 }
-message NodeRecordMetaData
+
+message tree_node
+{
+  optional int32 node_type = 1;
+  optional leaf leaf = 2;
+  optional node node = 3;
+}
+
+message node
 {
   optional int64 id = 1;
-  repeated int64 childrens = 2;
-  repeated bytes keys = 3;
-  optional int32 is_dirt =4;
+  repeated bytes keys = 2;
+  repeated int64 childrens = 3;
+  optional int32 is_dirt = 4;
 }
-message LeafRecordMetaData
+
+message leaf
 {
   optional int64 id = 1;
   repeated bytes keys = 2;
   repeated bytes values = 3;
-  optional int32 is_dirt =4;
+  optional int32 is_dirt = 4;
+}
+
+message tree_log
+{
+  optional string action = 1;
+  optional bytes key = 2;
+  optional bytes value = 3;
 }
