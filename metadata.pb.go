@@ -14,12 +14,13 @@ var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type BtreeMetadata struct {
-	Root             *int64 `protobuf:"varint,1,opt,name=root" json:"root,omitempty"`
-	Size             *int64 `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
-	LeafMax          *int64 `protobuf:"varint,4,opt,name=leaf_max" json:"leaf_max,omitempty"`
-	NodeMax          *int64 `protobuf:"varint,5,opt,name=node_max" json:"node_max,omitempty"`
-	IndexCursor      *int64 `protobuf:"varint,7,opt,name=index_cursor" json:"index_cursor,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Root             *int64   `protobuf:"varint,1,opt,name=root" json:"root,omitempty"`
+	Size             *int64   `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
+	LeafMax          *int64   `protobuf:"varint,4,opt,name=leaf_max" json:"leaf_max,omitempty"`
+	NodeMax          *int64   `protobuf:"varint,5,opt,name=node_max" json:"node_max,omitempty"`
+	IndexCursor      *int64   `protobuf:"varint,7,opt,name=index_cursor" json:"index_cursor,omitempty"`
+	Nodes            []string `protobuf:"bytes,9,rep,name=nodes" json:"nodes,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *BtreeMetadata) Reset()         { *m = BtreeMetadata{} }
@@ -59,6 +60,13 @@ func (m *BtreeMetadata) GetIndexCursor() int64 {
 		return *m.IndexCursor
 	}
 	return 0
+}
+
+func (m *BtreeMetadata) GetNodes() []string {
+	if m != nil {
+		return m.Nodes
+	}
+	return nil
 }
 
 type TreeNode struct {

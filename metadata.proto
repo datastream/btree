@@ -7,6 +7,7 @@ message btree_metadata
   optional int64 leaf_max = 4;
   optional int64 node_max = 5;
   optional int64 index_cursor = 7;
+  repeated string nodes = 9;
 }
 
 message tree_node
