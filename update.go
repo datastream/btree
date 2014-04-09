@@ -6,34 +6,42 @@ import (
 )
 
 // Update is used to update key/value
-func (t *Btree) update(record *Record) bool {
-	rst, clonedNode := t.nodes[t.GetRoot()].updateRecord(record, t)
-	if rst {
+func (t *Btree) update(record TreeLog) error {
+	tnode, err := t.getTreeNode(t.GetRoot())
+	if err != nil {
+		return err
+	}
+	clonedNode, err := tnode.updateRecord(record, t)
+	if err == nil {
 		t.Root = proto.Int64(clonedNode.GetId())
 	}
-	return rst
+	return err
 }
 
 // update node
-func (n *Node) updateRecord(record *Record, tree *Btree) (bool, TreeNode) {
+func (n *TreeNode) updateRecord(record TreeLog, tree *Btree) (*TreeNode, error) {
 	index := n.locate(record.Key)
-	if stat, clonedTreeNode := tree.nodes[n.Childrens[index]].updateRecord(record, tree); stat {
-		clonedNode, _ := n.clone(tree).(*Node)
-		clonedNode.Childrens[index] = clonedTreeNode.GetId()
-		return true, clonedNode
+	tnode, err := tree.getTreeNode(n.Childrens[index])
+	if err != nil {
+		return tnode, err
 	}
-	return false, nil
-}
-
-// update leaf
-func (l *Leaf) updateRecord(record *Record, tree *Btree) (bool, TreeNode) {
-	index := l.locate(record.Key) - 1
-	if index >= 0 {
-		if bytes.Compare(l.Keys[index], record.Key) == 0 {
-			clonedLeaf, _ := l.clone(tree).(*Leaf)
-			clonedLeaf.Values[index] = record.Value
-			return true, clonedLeaf
+	var nnode *TreeNode
+	var clonedNode *TreeNode
+	if tnode.GetNodeType() == isNode {
+		clonedNode, err = tnode.updateRecord(record, tree)
+		if err == nil {
+			nnode = n.clone(tree)
+			nnode.Childrens[index] = clonedNode.GetId()
+		}
+	} else {
+		index--
+		if index >= 0 {
+			if bytes.Compare(n.Keys[index], record.Key) == 0 {
+				nnode = n.clone(tree)
+				nnode.Values[index] = record.Value
+			}
 		}
 	}
-	return false, nil
+	tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+	return nnode, err
 }

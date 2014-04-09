@@ -3,96 +3,85 @@ package btree
 import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
+	"fmt"
 	"sync/atomic"
 )
 
-func (t *Btree) dodelete(key []byte) bool {
-	rst, clonedTreeNode, _ := t.nodes[t.GetRoot()].deleteRecord(key, t)
-	if rst {
-		newroot := clonedTreeNode
-		if len(clonedTreeNode.GetKeys()) == 0 {
-			if clonedNode, ok := clonedTreeNode.(*Node); ok {
-				newroot = t.nodes[clonedNode.Childrens[0]]
+func (t *Btree) dodelete(key []byte) error {
+	tnode, err := t.getTreeNode(t.GetRoot())
+	if err != nil {
+		return err
+	}
+	clonedNode, _, err := tnode.deleteRecord(key, t)
+	if err == nil {
+		newroot := clonedNode
+		if len(clonedNode.GetKeys()) == 0 {
+			if clonedNode.GetNodeType() == isNode {
+				newroot, err = t.getTreeNode(clonedNode.Childrens[0])
 				atomic.StoreInt32(clonedNode.IsDirt, 1)
 			}
 		}
 		t.Root = proto.Int64(newroot.GetId())
 	}
-	return rst
+	return err
 }
 
-// delete in cloned node
-func (n *Node) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
+func (n *TreeNode) deleteRecord(key []byte, tree *Btree) (*TreeNode, []byte, error) {
 	index := n.locate(key)
-	if rst, clonedTreeNode, newKey := tree.nodes[n.Childrens[index]].deleteRecord(key, tree); rst {
-		clonedNode, _ := n.clone(tree).(*Node)
-		clonedNode.Childrens[index] = clonedTreeNode.GetId()
-		tmpKey := newKey
-		if newKey != nil {
-			if clonedNode.replace(key, newKey) {
-				newKey = nil
+	var err error
+	var nnode *TreeNode
+	var newKey []byte
+	var clonedNode *TreeNode
+	if n.GetNodeType() == isNode {
+		tnode, err := tree.getTreeNode(n.Childrens[index])
+		clonedNode, newKey, err = tnode.deleteRecord(key, tree)
+		if err == nil {
+			nnode = n.clone(tree)
+			nnode.Childrens[index] = clonedNode.GetId()
+			tmpKey := newKey
+			if len(newKey) > 0 {
+				if nnode.replace(key, newKey) {
+					newKey = []byte{}
+				}
 			}
-		}
-		if index == 0 {
-			index = 1
-		}
-		if len(clonedNode.Keys) > 0 {
-			var left int64
-			if tree.getLeaf(clonedNode.Childrens[index-1]) != nil {
-				left = clonedNode.mergeLeaf(
-					clonedNode.Childrens[index-1],
-					clonedNode.Childrens[index],
-					index-1,
-					tree)
-				if index == 1 && tmpKey == nil {
-					leaf := tree.getLeaf(clonedNode.Childrens[0])
-					if leaf != nil && len(leaf.Keys) > 0 {
-						newKey = leaf.Keys[0]
+			if index == 0 {
+				index = 1
+			}
+			if len(nnode.Keys) > 0 {
+				left := nnode.merge(tree, index-1)
+				if index == 1 && len(tmpKey) == 0 {
+					tt, _ := tree.getTreeNode(nnode.Childrens[0])
+					if tt.GetNodeType() == isLeaf {
+						if len(tt.Keys) > 0 {
+							newKey = tt.Keys[0]
+						}
 					}
 				}
-			} else {
-				left = clonedNode.mergeNode(
-					clonedNode.Childrens[index-1],
-					clonedNode.Childrens[index],
-					index-1,
-					tree)
-			}
-			if left > 0 {
-				clonedNode.Childrens[index-1] = left
+				if left > 0 {
+					nnode.Childrens[index-1] = left
+				}
 			}
 		}
-		return true, clonedNode, newKey
 	}
-	return false, nil, nil
-}
-
-//delete record in a leaf
-//first return deleted or not
-//second return cloneTreeNode
-func (l *Leaf) deleteRecord(key []byte, tree *Btree) (bool, TreeNode, []byte) {
-	deleted := false
-	index := l.locate(key) - 1
-	if index >= 0 {
-		if bytes.Compare(l.Keys[index], key) == 0 {
-			deleted = true
+	if n.GetNodeType() == isLeaf {
+		index -= 1
+		if index >= 0 && bytes.Compare(n.Keys[index], key) == 0 {
+			nnode = n.clone(tree)
+			nnode.Keys = append(nnode.Keys[:index], nnode.Keys[index+1:]...)
+			nnode.Values = append(nnode.Values[:index], nnode.Values[index+1:]...)
+			if index == 0 && len(nnode.Keys) > 0 {
+				newKey = nnode.Keys[0]
+			}
+		} else {
+			return nil, newKey, fmt.Errorf("delete failed")
 		}
 	}
-	if deleted {
-		clonedLeaf, _ := l.clone(tree).(*Leaf)
-		clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
-			clonedLeaf.Keys[index+1:]...)
-		clonedLeaf.Values = append(clonedLeaf.Values[:index],
-			clonedLeaf.Values[index+1:]...)
-		if index == 0 && len(clonedLeaf.Keys) > 0 {
-			return true, clonedLeaf, clonedLeaf.Keys[0]
-		}
-		return true, clonedLeaf, nil
-	}
-	return false, nil, nil
+	tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+	return clonedNode, []byte{}, err
 }
 
 // replace delete key
-func (n *Node) replace(oldKey, newKey []byte) bool {
+func (n *TreeNode) replace(oldKey, newKey []byte) bool {
 	index := n.locate(oldKey) - 1
 	if index >= 0 {
 		if bytes.Compare(n.Keys[index], oldKey) == 0 {

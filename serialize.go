@@ -1,5 +1,6 @@
 package btree
 
+/*
 import (
 	"bufio"
 	"code.google.com/p/goprotobuf/proto"
@@ -134,7 +135,7 @@ func readBuf(dataLength int, reader *bufio.Reader) ([]byte, error) {
 	}
 	return dataRecord, err
 }
-
+*/
 func encodefixed32(x uint64) []byte {
 	var p []byte
 	p = append(p,

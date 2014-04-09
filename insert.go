@@ -3,64 +3,81 @@ package btree
 import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
+	"fmt"
 )
 
 // Insert can insert record into a btree
-func (t *Btree) insert(record *Record) bool {
-	rst, clonedTreeNode := t.nodes[t.GetRoot()].insertRecord(record, t)
-	if rst {
-		var newroot TreeNode
-		if len(clonedTreeNode.GetKeys()) > int(t.GetNodeMax()) {
-			nnode := t.newNode()
-			key, left, right := clonedTreeNode.split(t)
-			nnode.insertOnce(key, left, right, t)
-			newroot = nnode
-		} else {
-			newroot = clonedTreeNode
-		}
-		t.Root = proto.Int64(newroot.GetId())
+func (t *Btree) insert(record TreeLog) error {
+	tnode, err := t.getTreeNode(t.GetRoot())
+	if err != nil && err.Error() == "no data" {
+		nnode := t.newTreeNode()
+		nnode.NodeType = proto.Int32(isLeaf)
+		_, err = nnode.insertRecord(record, t)
+		return err
 	}
-	return rst
+	if err != nil {
+		return err
+	} else {
+		clonednode, err := tnode.insertRecord(record, t)
+		if err == nil && len(clonednode.GetKeys()) > int(t.GetNodeMax()) {
+			nnode := t.newTreeNode()
+			nnode.NodeType = proto.Int32(isLeaf)
+			key, left, right := clonednode.split(t)
+			nnode.insertOnce(key, left, right, t)
+			t.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+		}
+		return err
+	}
+	return fmt.Errorf("bad insert")
 }
 
 // insert node
-func (n *Node) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
+func (n *TreeNode) insertRecord(record TreeLog, tree *Btree) (*TreeNode, error) {
+	var err error
 	index := n.locate(record.Key)
-	if rst, clonedTreeNode := tree.nodes[n.Childrens[index]].insertRecord(record, tree); rst {
-		clonedNode, _ := n.clone(tree).(*Node)
-		clonedNode.Childrens[index] = clonedTreeNode.GetId()
-		if len(clonedTreeNode.GetKeys()) > int(tree.GetNodeMax()) {
-			key, left, right := clonedTreeNode.split(tree)
-			clonedNode.insertOnce(key, left, right, tree)
+	if n.GetNodeType() == isNode {
+		tnode, err := tree.getTreeNode(n.Childrens[index])
+		clonedTreeNode, err := tnode.insertRecord(record, tree)
+		if err == nil {
+			clonedNode := n.clone(tree)
+			clonedNode.Childrens[index] = clonedTreeNode.GetId()
+			if len(clonedTreeNode.GetKeys()) > int(tree.GetNodeMax()) {
+				key, left, right := clonedTreeNode.split(tree)
+				err = clonedNode.insertOnce(key, left, right, tree)
+				if err != nil {
+					return nil, err
+				}
+			}
+			tree.nodes[clonedNode.GetId()], err = proto.Marshal(clonedNode)
+			return clonedNode, err
 		}
-		return true, clonedNode
+		return nil, err
 	}
-	return false, nil
-}
-
-// insert leaf
-func (l *Leaf) insertRecord(record *Record, tree *Btree) (bool, TreeNode) {
-	index := l.locate(record.Key)
-	if index > 0 {
-		if bytes.Compare(l.Keys[index-1], record.Key) == 0 {
-			return false, nil
+	if n.GetNodeType() == isNode {
+		if index > 0 {
+			if bytes.Compare(n.Keys[index-1], record.Key) == 0 {
+				return nil, fmt.Errorf("key already inserted")
+			}
 		}
+		var nnode *TreeNode
+		if len(n.GetKeys()) == 0 {
+			nnode = n
+		} else {
+			nnode = n.clone(tree)
+		}
+		nnode.Keys = append(nnode.Keys[:index],
+			append([][]byte{record.Key}, nnode.Keys[index:]...)...)
+		nnode.Values = append(nnode.Values[:index],
+			append([][]byte{record.Value}, nnode.Values[index:]...)...)
+		tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+		return nnode, err
 	}
-	var clonedLeaf *Leaf
-	if len(l.Keys) == 0 {
-		clonedLeaf = l
-	} else {
-		clonedLeaf, _ = l.clone(tree).(*Leaf)
-	}
-	clonedLeaf.Keys = append(clonedLeaf.Keys[:index],
-		append([][]byte{record.Key}, clonedLeaf.Keys[index:]...)...)
-	clonedLeaf.Values = append(clonedLeaf.Values[:index],
-		append([][]byte{record.Value}, clonedLeaf.Values[index:]...)...)
-	return true, clonedLeaf
+	return nil, fmt.Errorf("insert record failed")
 }
 
 // Insert key into tree node
-func (n *Node) insertOnce(key []byte, leftID int64, rightID int64, tree *Btree) {
+func (n *TreeNode) insertOnce(key []byte, leftID int64, rightID int64, tree *Btree) error {
+	var err error
 	index := n.locate(key)
 	if len(n.Keys) == 0 {
 		n.Childrens = append([]int64{leftID}, rightID)
@@ -69,4 +86,6 @@ func (n *Node) insertOnce(key []byte, leftID int64, rightID int64, tree *Btree) 
 			append([]int64{rightID}, n.Childrens[index+1:]...)...)
 	}
 	n.Keys = append(n.Keys[:index], append([][]byte{key}, n.Keys[index:]...)...)
+	tree.nodes[n.GetId()], err = proto.Marshal(n)
+	return err
 }

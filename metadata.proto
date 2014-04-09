@@ -11,25 +11,12 @@ message btree_metadata
 
 message tree_node
 {
-  optional int32 node_type = 1;
-  optional leaf leaf = 2;
-  optional node node = 3;
-}
-
-message node
-{
   optional int64 id = 1;
   repeated bytes keys = 2;
   repeated int64 childrens = 3;
-  optional int32 is_dirt = 4;
-}
-
-message leaf
-{
-  optional int64 id = 1;
-  repeated bytes keys = 2;
-  repeated bytes values = 3;
-  optional int32 is_dirt = 4;
+  repeated bytes values = 4;
+  optional int32 node_type = 5;
+  optional int32 is_dirt = 6;
 }
 
 message tree_log
