@@ -2,8 +2,8 @@ package btree
 
 import (
 	"bytes"
-	"code.google.com/p/goprotobuf/proto"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"sync/atomic"
 )
 

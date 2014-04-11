@@ -1,7 +1,7 @@
 package btree
 
 import (
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 func (n *TreeNode) split(tree *Btree) (key []byte, left, right int64) {

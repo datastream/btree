@@ -2,15 +2,24 @@
 // source: metadata.proto
 // DO NOT EDIT!
 
+/*
+Package btree is a generated protocol buffer package.
+
+It is generated from these files:
+	metadata.proto
+
+It has these top-level messages:
+	BtreeMetadata
+	TreeNode
+	TreeLog
+*/
 package btree
 
-import proto "code.google.com/p/goprotobuf/proto"
-import json "encoding/json"
+import proto "github.com/golang/protobuf/proto"
 import math "math"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type BtreeMetadata struct {

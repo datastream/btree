@@ -2,7 +2,7 @@ package btree
 
 import (
 	"bytes"
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // Update is used to update key/value
