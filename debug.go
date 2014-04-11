@@ -6,16 +6,24 @@ import (
 
 //debug func
 
-func (n *TreeNode) printChildrens() {
-	for i := range n.Childrens {
-		fmt.Println("Node", n.GetId(), "Child", n.Childrens[i])
+func (n *TreeNode) printNode() {
+	if n.GetNodeType() == isLeaf {
+		fmt.Println("---LeafID---", n.GetId())
+		fmt.Println("Key", toArray(n.GetKeys()))
+		fmt.Println("values", toArray(n.GetValues()))
+	} else {
+		fmt.Println("---NodeID---", n.GetId())
+		fmt.Println("Key", toArray(n.GetKeys()))
+		fmt.Println("Childrens", n.GetChildrens())
 	}
 }
 
-func (n *TreeNode) printKeys() {
-	for i := range n.Keys {
-		fmt.Println("TreeNode", n.GetId(), "Key", string(n.Keys[i]))
+func toArray(data [][]byte) []string {
+	var rst []string
+	for _, v := range data {
+		rst = append(rst, string(v))
 	}
+	return rst
 }
 
 // PrintInfo print some basic btree info
@@ -29,10 +37,10 @@ func (t *Btree) PrintTree() {
 	fmt.Println("-----------Tree-------------")
 	for i := 0; i < int(t.GetIndexCursor()); i++ {
 		if node, err := t.getTreeNode(int64(i)); err == nil {
-			node.printKeys()
-			node.printChildrens()
-			node.printKeys()
+			if node.GetIsDirt() == 0 {
+				node.printNode()
+				fmt.Println("--------")
+			}
 		}
-		fmt.Println("AA")
 	}
 }

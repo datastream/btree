@@ -19,11 +19,11 @@ func (t *Btree) search(key []byte) ([]byte, error) {
 func (n *TreeNode) searchRecord(key []byte, tree *Btree) ([]byte, error) {
 	var value []byte
 	index := n.locate(key)
-	tnode, err := tree.getTreeNode(n.Childrens[index])
-	if err != nil {
-		return value, err
-	}
-	if tnode.GetNodeType() == isNode {
+	if n.GetNodeType() == isNode {
+		tnode, err := tree.getTreeNode(n.Childrens[index])
+		if err != nil {
+			return value, err
+		}
 		return tnode.searchRecord(key, tree)
 	} else {
 		index--

@@ -21,13 +21,14 @@ func (t *Btree) update(record TreeLog) error {
 // update node
 func (n *TreeNode) updateRecord(record TreeLog, tree *Btree) (*TreeNode, error) {
 	index := n.locate(record.Key)
-	tnode, err := tree.getTreeNode(n.Childrens[index])
-	if err != nil {
-		return tnode, err
-	}
 	var nnode *TreeNode
 	var clonedNode *TreeNode
-	if tnode.GetNodeType() == isNode {
+	var err error
+	if n.GetNodeType() == isNode {
+		tnode, err := tree.getTreeNode(n.Childrens[index])
+		if err != nil {
+			return tnode, err
+		}
 		clonedNode, err = tnode.updateRecord(record, tree)
 		if err == nil {
 			nnode = n.clone(tree)

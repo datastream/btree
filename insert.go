@@ -13,6 +13,10 @@ func (t *Btree) insert(record TreeLog) error {
 		nnode := t.newTreeNode()
 		nnode.NodeType = proto.Int32(isLeaf)
 		_, err = nnode.insertRecord(record, t)
+		if err == nil {
+			t.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+		}
+		t.Root = proto.Int64(nnode.GetId())
 		return err
 	}
 	if err != nil {
@@ -21,10 +25,13 @@ func (t *Btree) insert(record TreeLog) error {
 		clonednode, err := tnode.insertRecord(record, t)
 		if err == nil && len(clonednode.GetKeys()) > int(t.GetNodeMax()) {
 			nnode := t.newTreeNode()
-			nnode.NodeType = proto.Int32(isLeaf)
+			nnode.NodeType = proto.Int32(isNode)
 			key, left, right := clonednode.split(t)
 			nnode.insertOnce(key, left, right, t)
 			t.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+			t.Root = proto.Int64(nnode.GetId())
+		} else {
+			t.Root = proto.Int64(clonednode.GetId())
 		}
 		return err
 	}
@@ -53,7 +60,7 @@ func (n *TreeNode) insertRecord(record TreeLog, tree *Btree) (*TreeNode, error) 
 		}
 		return nil, err
 	}
-	if n.GetNodeType() == isNode {
+	if n.GetNodeType() == isLeaf {
 		if index > 0 {
 			if bytes.Compare(n.Keys[index-1], record.Key) == 0 {
 				return nil, fmt.Errorf("key already inserted")

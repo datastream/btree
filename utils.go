@@ -9,7 +9,8 @@ import (
 
 type treeOperation struct {
 	TreeLog
-	restChan chan interface{}
+	valueChan chan []byte
+	errChan   chan error
 }
 
 // genrate node/leaf id
@@ -79,6 +80,7 @@ func (n *TreeNode) clone(tree *Btree) *TreeNode {
 	nnode.Values = n.GetValues()
 	nnode.NodeType = proto.Int32(n.GetNodeType())
 	atomic.StoreInt32(n.IsDirt, 1)
+	tree.nodes[n.GetId()], _ = proto.Marshal(n)
 	return nnode
 }
 

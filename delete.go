@@ -14,14 +14,20 @@ func (t *Btree) dodelete(key []byte) error {
 	}
 	clonedNode, _, err := tnode.deleteRecord(key, t)
 	if err == nil {
-		newroot := clonedNode
 		if len(clonedNode.GetKeys()) == 0 {
 			if clonedNode.GetNodeType() == isNode {
-				newroot, err = t.getTreeNode(clonedNode.Childrens[0])
-				atomic.StoreInt32(clonedNode.IsDirt, 1)
+				if len(clonedNode.GetChildrens()) > 0 {
+					newroot, err := t.getTreeNode(clonedNode.Childrens[0])
+					if err == nil {
+						atomic.StoreInt32(clonedNode.IsDirt, 1)
+						t.nodes[clonedNode.GetId()], err = proto.Marshal(clonedNode)
+						t.Root = proto.Int64(newroot.GetId())
+					}
+					return err
+				}
 			}
 		}
-		t.Root = proto.Int64(newroot.GetId())
+		t.Root = proto.Int64(clonedNode.GetId())
 	}
 	return err
 }
@@ -77,7 +83,7 @@ func (n *TreeNode) deleteRecord(key []byte, tree *Btree) (*TreeNode, []byte, err
 		}
 	}
 	tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
-	return clonedNode, []byte{}, err
+	return nnode, newKey, err
 }
 
 // replace delete key

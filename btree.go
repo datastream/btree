@@ -74,14 +74,15 @@ func (t *Btree) run() {
 		case op := <-t.opChan:
 			switch op.GetAction() {
 			case "insert":
-				op.restChan <- t.insert(op.TreeLog)
+				op.errChan <- t.insert(op.TreeLog)
 			case "delete":
-				op.restChan <- t.dodelete(op.Key)
+				op.errChan <- t.dodelete(op.Key)
 			case "update":
-				op.restChan <- t.update(op.TreeLog)
+				op.errChan <- t.update(op.TreeLog)
 			case "search":
-				rst, _ := t.search(op.Key)
-				op.restChan <- rst
+				rst, err := t.search(op.Key)
+				op.valueChan <- rst
+				op.errChan <- err
 			}
 		case <-tick:
 			t.gc()
@@ -95,51 +96,51 @@ func (t *Btree) Sync(file string) {
 }
 
 // Insert can insert record into a btree
-func (t *Btree) Insert(key, value []byte) bool {
+func (t *Btree) Insert(key, value []byte) error {
 	q := &treeOperation{
-		restChan: make(chan interface{}),
+		valueChan: make(chan []byte),
+		errChan:   make(chan error),
 	}
 	q.Action = proto.String("insert")
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
-	rst := <-q.restChan
-	return rst.(bool)
+	return <-q.errChan
 }
 
 // Delete can delete record
 func (t *Btree) Delete(key []byte) error {
 	q := &treeOperation{
-		restChan: make(chan interface{}),
+		valueChan: make(chan []byte),
+		errChan:   make(chan error),
 	}
 	q.Action = proto.String("delete")
 	q.Key = key
 	t.opChan <- q
-	rst := <-q.restChan
-	return rst.(error)
+	return <-q.errChan
 }
 
 // Search return value
-func (t *Btree) Search(key []byte) []byte {
+func (t *Btree) Search(key []byte) ([]byte, error) {
 	q := &treeOperation{
-		restChan: make(chan interface{}),
+		valueChan: make(chan []byte),
+		errChan:   make(chan error),
 	}
 	q.Action = proto.String("search")
 	q.Key = key
 	t.opChan <- q
-	rst := <-q.restChan
-	return rst.([]byte)
+	return <-q.valueChan, <-q.errChan
 }
 
 // Update is used to update key/value
 func (t *Btree) Update(key, value []byte) error {
 	q := &treeOperation{
-		restChan: make(chan interface{}),
+		valueChan: make(chan []byte),
+		errChan:   make(chan error),
 	}
 	q.Action = proto.String("update")
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
-	rst := <-q.restChan
-	return rst.(error)
+	return <-q.errChan
 }
