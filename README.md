@@ -23,29 +23,27 @@ create a btree
 
 create new btree with custom leafsize/nodesize
 
-### btree.Insert(record)
+### btree.Insert(key, value)
 
-Insert a record, if insert success, it return true.
+Insert a record, if insert success, it return nil
 
-### btree.Update(record)
+### btree.Update(key, value)
 
-Update a record, if update success, it return true
+Update a record, if update success, it return nil
 
 ### btree.Delete(key)
 
-Delete a record, if delete success, it return true
+Delete a record, if delete success, it return nil
 
 ### btree.Search(key)
 
-Search a key, if find success, it return value
+Search a key, if find success, it return value, nil
 
 ### btree.Marshal(filename)
 
 Write btree data into disk.
 
-    # tree.Version = 100
     tree.Dump("treedump")
-    # filename should be "treedump_100"
 
 ### btree.Unmarshal(filename)
 

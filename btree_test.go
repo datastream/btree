@@ -65,9 +65,9 @@ func TestDelete(t *testing.T) {
 
 func BenchmarkInsert(t *testing.B) {
 	size := 100000
-	tree := btree.NewBtreeSize(16,16)
+	tree := btree.NewBtreeSize(16, 16)
 	for i := 0; i < size; i++ {
-		tree.Insert([]byte(strconv.Itoa(i)),[]byte(strconv.Itoa(i)))
+		tree.Insert([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 	tree.Marshal("treedump")
 }
