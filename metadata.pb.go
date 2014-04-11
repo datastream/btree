@@ -19,7 +19,8 @@ type BtreeMetadata struct {
 	LeafMax          *int64   `protobuf:"varint,4,opt,name=leaf_max" json:"leaf_max,omitempty"`
 	NodeMax          *int64   `protobuf:"varint,5,opt,name=node_max" json:"node_max,omitempty"`
 	IndexCursor      *int64   `protobuf:"varint,7,opt,name=index_cursor" json:"index_cursor,omitempty"`
-	Nodes            []string `protobuf:"bytes,9,rep,name=nodes" json:"nodes,omitempty"`
+	Index            *int64   `protobuf:"varint,8,opt,name=index" json:"index,omitempty"`
+	Nodes            [][]byte `protobuf:"bytes,9,rep,name=nodes" json:"nodes,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
@@ -62,7 +63,14 @@ func (m *BtreeMetadata) GetIndexCursor() int64 {
 	return 0
 }
 
-func (m *BtreeMetadata) GetNodes() []string {
+func (m *BtreeMetadata) GetIndex() int64 {
+	if m != nil && m.Index != nil {
+		return *m.Index
+	}
+	return 0
+}
+
+func (m *BtreeMetadata) GetNodes() [][]byte {
 	if m != nil {
 		return m.Nodes
 	}

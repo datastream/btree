@@ -24,7 +24,7 @@ func (n *TreeNode) split(tree *Btree) (key []byte, left, right int64) {
 	}
 	left = n.GetId()
 	right = nnode.GetId()
-	tree.nodes[nnode.GetId()], _ = proto.Marshal(nnode)
-	tree.nodes[n.GetId()], _ = proto.Marshal(n)
+	tree.Nodes[nnode.GetId()], _ = proto.Marshal(nnode)
+	tree.Nodes[n.GetId()], _ = proto.Marshal(n)
 	return
 }

@@ -14,7 +14,7 @@ func (t *Btree) insert(record TreeLog) error {
 		nnode.NodeType = proto.Int32(isLeaf)
 		_, err = nnode.insertRecord(record, t)
 		if err == nil {
-			t.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+			t.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
 		}
 		t.Root = proto.Int64(nnode.GetId())
 		return err
@@ -28,7 +28,7 @@ func (t *Btree) insert(record TreeLog) error {
 			nnode.NodeType = proto.Int32(isNode)
 			key, left, right := clonednode.split(t)
 			nnode.insertOnce(key, left, right, t)
-			t.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+			t.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
 			t.Root = proto.Int64(nnode.GetId())
 		} else {
 			t.Root = proto.Int64(clonednode.GetId())
@@ -55,7 +55,7 @@ func (n *TreeNode) insertRecord(record TreeLog, tree *Btree) (*TreeNode, error) 
 					return nil, err
 				}
 			}
-			tree.nodes[clonedNode.GetId()], err = proto.Marshal(clonedNode)
+			tree.Nodes[clonedNode.GetId()], err = proto.Marshal(clonedNode)
 			return clonedNode, err
 		}
 		return nil, err
@@ -76,7 +76,7 @@ func (n *TreeNode) insertRecord(record TreeLog, tree *Btree) (*TreeNode, error) 
 			append([][]byte{record.Key}, nnode.Keys[index:]...)...)
 		nnode.Values = append(nnode.Values[:index],
 			append([][]byte{record.Value}, nnode.Values[index:]...)...)
-		tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+		tree.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
 		return nnode, err
 	}
 	return nil, fmt.Errorf("insert record failed")
@@ -93,6 +93,6 @@ func (n *TreeNode) insertOnce(key []byte, leftID int64, rightID int64, tree *Btr
 			append([]int64{rightID}, n.Childrens[index+1:]...)...)
 	}
 	n.Keys = append(n.Keys[:index], append([][]byte{key}, n.Keys[index:]...)...)
-	tree.nodes[n.GetId()], err = proto.Marshal(n)
+	tree.Nodes[n.GetId()], err = proto.Marshal(n)
 	return err
 }

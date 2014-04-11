@@ -43,6 +43,6 @@ func (n *TreeNode) updateRecord(record TreeLog, tree *Btree) (*TreeNode, error) 
 			}
 		}
 	}
-	tree.nodes[nnode.GetId()], err = proto.Marshal(nnode)
+	tree.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
 	return nnode, err
 }

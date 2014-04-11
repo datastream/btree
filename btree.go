@@ -8,7 +8,6 @@ import (
 // Btree metadata
 type Btree struct {
 	BtreeMetadata
-	nodes       [][]byte
 	dupnodelist map[int64]int
 	opChan      chan *treeOperation
 	exitChan    chan int
@@ -32,7 +31,6 @@ const (
 // NewBtree create a btree
 func NewBtree() *Btree {
 	tree := &Btree{
-		nodes:       make([][]byte, TreeSize),
 		dupnodelist: make(map[int64]int),
 		opChan:      make(chan *treeOperation),
 		BtreeMetadata: BtreeMetadata{
@@ -41,6 +39,7 @@ func NewBtree() *Btree {
 			LeafMax:     proto.Int64(LeafSize),
 			NodeMax:     proto.Int64(NodeSize),
 			IndexCursor: proto.Int64(0),
+			Nodes:       make([][]byte, TreeSize),
 		},
 	}
 	go tree.run()
@@ -50,7 +49,6 @@ func NewBtree() *Btree {
 // NewBtreeSize create new btree with custom leafsize/nodesize
 func NewBtreeSize(leafsize int64, nodesize int64) *Btree {
 	tree := &Btree{
-		nodes:       make([][]byte, TreeSize),
 		dupnodelist: make(map[int64]int),
 		opChan:      make(chan *treeOperation),
 		BtreeMetadata: BtreeMetadata{
@@ -59,6 +57,7 @@ func NewBtreeSize(leafsize int64, nodesize int64) *Btree {
 			LeafMax:     proto.Int64(leafsize),
 			NodeMax:     proto.Int64(nodesize),
 			IndexCursor: proto.Int64(0),
+			Nodes:       make([][]byte, TreeSize),
 		},
 	}
 	go tree.run()
@@ -105,6 +104,7 @@ func (t *Btree) Insert(key, value []byte) error {
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
+	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }
 
@@ -117,6 +117,7 @@ func (t *Btree) Delete(key []byte) error {
 	q.Action = proto.String("delete")
 	q.Key = key
 	t.opChan <- q
+	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }
 
@@ -129,6 +130,7 @@ func (t *Btree) Search(key []byte) ([]byte, error) {
 	q.Action = proto.String("search")
 	q.Key = key
 	t.opChan <- q
+	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.valueChan, <-q.errChan
 }
 
@@ -142,5 +144,6 @@ func (t *Btree) Update(key, value []byte) error {
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
+	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }

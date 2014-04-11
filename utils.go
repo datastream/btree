@@ -24,7 +24,7 @@ func (t *Btree) genrateID() int64 {
 	}
 	if id == -1 {
 		if t.GetIndexCursor() >= t.GetSize() {
-			t.nodes = append(t.nodes, make([][]byte, TreeSize)...)
+			t.Nodes = append(t.Nodes, make([][]byte, TreeSize)...)
 			*t.Size += int64(TreeSize)
 		}
 		id = t.GetIndexCursor()
@@ -46,8 +46,8 @@ func (t *Btree) newTreeNode() *TreeNode {
 func (t *Btree) getTreeNode(id int64) (*TreeNode, error) {
 	var tnode TreeNode
 	var err error
-	if len(t.nodes[id]) > 0 {
-		err = proto.Unmarshal(t.nodes[id], &tnode)
+	if len(t.Nodes[id]) > 0 {
+		err = proto.Unmarshal(t.Nodes[id], &tnode)
 	} else {
 		err = fmt.Errorf("no data")
 	}
@@ -80,16 +80,16 @@ func (n *TreeNode) clone(tree *Btree) *TreeNode {
 	nnode.Values = n.GetValues()
 	nnode.NodeType = proto.Int32(n.GetNodeType())
 	atomic.StoreInt32(n.IsDirt, 1)
-	tree.nodes[n.GetId()], _ = proto.Marshal(n)
+	tree.Nodes[n.GetId()], _ = proto.Marshal(n)
 	return nnode
 }
 
 //gc dupnodelist
 func (t *Btree) gc() {
-	for _, n := range t.nodes {
+	for _, n := range t.Nodes {
 		var v TreeNode
 		err := proto.Unmarshal(n, &v)
-		if err != nil && v.isReleaseAble() {
+		if err == nil && v.isReleaseAble() {
 			t.dupnodelist[v.GetId()] = 1
 		}
 	}

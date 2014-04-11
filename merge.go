@@ -49,8 +49,8 @@ func (n *TreeNode) merge(tree *Btree, index int) int64 {
 	}
 	atomic.StoreInt32(right.IsDirt, 1)
 	atomic.StoreInt32(left.IsDirt, 1)
-	tree.nodes[right.GetId()], err = proto.Marshal(right)
-	tree.nodes[left.GetId()], err = proto.Marshal(left)
-	tree.nodes[leftClone.GetId()], err = proto.Marshal(leftClone)
+	tree.Nodes[right.GetId()], err = proto.Marshal(right)
+	tree.Nodes[left.GetId()], err = proto.Marshal(left)
+	tree.Nodes[leftClone.GetId()], err = proto.Marshal(leftClone)
 	return leftClone.GetId()
 }
