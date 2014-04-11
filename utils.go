@@ -86,7 +86,10 @@ func (n *TreeNode) clone(tree *Btree) *TreeNode {
 
 //gc dupnodelist
 func (t *Btree) gc() {
-	for _, n := range t.Nodes {
+	for i, n := range t.Nodes {
+		if int64(i) > t.GetIndexCursor() {
+			return
+		}
 		var v TreeNode
 		err := proto.Unmarshal(n, &v)
 		if err == nil && v.isReleaseAble() {
@@ -96,7 +99,7 @@ func (t *Btree) gc() {
 }
 
 func (n *TreeNode) isReleaseAble() bool {
-	if atomic.LoadInt32(n.IsDirt) > 0 {
+	if n.IsDirt == nil || atomic.LoadInt32(n.IsDirt) > 0 {
 		return true
 	}
 	return false

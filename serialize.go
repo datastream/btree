@@ -1,6 +1,6 @@
 package btree
 
-/*
+
 import (
 	"bufio"
 	"code.google.com/p/goprotobuf/proto"
@@ -10,14 +10,13 @@ import (
 
 // Marshal btree to disk
 func (t *Btree) Marshal(filename string) error {
-	size := len(t.nodes)
 	fd, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0644)
 	if err != nil {
 		return err
 	}
 	defer fd.Close()
 	fb := bufio.NewWriter(fd)
-	data, err := proto.Marshal(&t.BtreeMetaData)
+	data, err := proto.Marshal(&t.BtreeMetadata)
 	if err != nil {
 		return err
 	}
@@ -25,36 +24,15 @@ func (t *Btree) Marshal(filename string) error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < size; i++ {
-		if leaf, ok := t.nodes[i].(*Leaf); ok {
-			_, err = fb.Write(encodefixed32(uint64(isLeaf)))
-			if err != nil {
-				return err
-			}
-			data, err := proto.Marshal(&leaf.LeafRecordMetaData)
-			_, err = fb.Write(append(encodefixed32(uint64(len(data))), data...))
-			if err != nil {
-				return err
-			}
-		}
-		if node, ok := t.nodes[i].(*Node); ok {
-			_, err = fb.Write(encodefixed32(uint64(isNode)))
-			if err != nil {
-				return err
-			}
-			data, err := proto.Marshal(&node.NodeRecordMetaData)
-			_, err = fb.Write(append(encodefixed32(uint64(len(data))), data...))
-			if err != nil {
-				return err
-			}
-		}
-	}
 	return fb.Flush()
 }
 
 // Unmarshal btree from disk
 func Unmarshal(filename string) (*Btree, error) {
-	tree := new(Btree)
+	tree := &Btree {
+		dupnodelist: make(map[int64]int),
+		opChan:      make(chan *treeOperation),
+	}
 	fd, err := os.Open(filename)
 	if err != nil {
 		return tree, err
@@ -70,48 +48,8 @@ func Unmarshal(filename string) (*Btree, error) {
 	if err != nil {
 		return tree, err
 	}
-	tree.BtreeMetaData = BtreeMetaData{}
-	proto.Unmarshal(dataRecord, &tree.BtreeMetaData)
-	tree.nodes = make([]TreeNode, tree.GetSize())
-	for {
-		// typepart
-		var dataRecord []byte
-		var buf []byte
-		buf, err = readBuf(4, reader)
-		if err != nil {
-			break
-		}
-		dataType := int(decodefixed32(buf))
-		// get data
-		buf, err = readBuf(4, reader)
-		if err != nil {
-			break
-		}
-		dataLength = int(decodefixed32(buf))
-		dataRecord, err = readBuf(dataLength, reader)
-		if err != nil {
-			break
-		}
-		switch dataType {
-		case isNode:
-			{
-				node := new(Node)
-				proto.Unmarshal(dataRecord, &node.NodeRecordMetaData)
-				tree.nodes[node.GetId()] = node
-			}
-		case isLeaf:
-			{
-				leaf := new(Leaf)
-				proto.Unmarshal(dataRecord, &leaf.LeafRecordMetaData)
-				tree.nodes[leaf.GetId()] = leaf
-			}
-		}
-	}
-	if err == io.EOF {
-		err = nil
-	}
-	tree.exitChan = make(chan int)
-	tree.opChan = make(chan *treeOperation)
+	tree.BtreeMetadata = BtreeMetadata{}
+	proto.Unmarshal(dataRecord, &tree.BtreeMetadata)
 	go tree.run()
 	return tree, err
 }
@@ -135,7 +73,7 @@ func readBuf(dataLength int, reader *bufio.Reader) ([]byte, error) {
 	}
 	return dataRecord, err
 }
-*/
+
 func encodefixed32(x uint64) []byte {
 	var p []byte
 	p = append(p,

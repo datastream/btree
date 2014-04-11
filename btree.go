@@ -83,11 +83,12 @@ func (t *Btree) run() {
 				op.valueChan <- rst
 				op.errChan <- err
 			}
+			t.Index = proto.Int64(t.GetIndexCursor())
 		case <-tick:
 			t.gc()
 		}
 	}
-	//t.Marshal("treedump.tmp")
+	t.Marshal("treedump.tmp")
 }
 
 func (t *Btree) Sync(file string) {
@@ -104,7 +105,6 @@ func (t *Btree) Insert(key, value []byte) error {
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
-	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }
 
@@ -117,7 +117,6 @@ func (t *Btree) Delete(key []byte) error {
 	q.Action = proto.String("delete")
 	q.Key = key
 	t.opChan <- q
-	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }
 
@@ -130,7 +129,6 @@ func (t *Btree) Search(key []byte) ([]byte, error) {
 	q.Action = proto.String("search")
 	q.Key = key
 	t.opChan <- q
-	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.valueChan, <-q.errChan
 }
 
@@ -144,6 +142,5 @@ func (t *Btree) Update(key, value []byte) error {
 	q.Key = key
 	q.Value = value
 	t.opChan <- q
-	t.Index = proto.Int64(t.GetIndexCursor())
 	return <-q.errChan
 }
