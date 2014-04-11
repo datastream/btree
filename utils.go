@@ -86,9 +86,15 @@ func (n *TreeNode) clone(tree *Btree) *TreeNode {
 
 //gc dupnodelist
 func (t *Btree) gc() {
-	for i, n := range t.Nodes {
-		if int64(i) > t.GetIndexCursor() {
-			return
+	pos := t.gcIndex
+	for i, n := range t.Nodes[pos:] {
+		t.gcIndex++
+		if t.gcIndex > t.GetIndexCursor() {
+			t.gcIndex = 0
+			break
+		}
+		if i > 100 {
+			break
 		}
 		var v TreeNode
 		err := proto.Unmarshal(n, &v)

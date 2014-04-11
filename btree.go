@@ -8,6 +8,7 @@ import (
 // Btree metadata
 type Btree struct {
 	BtreeMetadata
+	gcIndex     int64
 	dupnodelist map[int64]int
 	opChan      chan *treeOperation
 	exitChan    chan int
@@ -65,7 +66,7 @@ func NewBtreeSize(leafsize int64, nodesize int64) *Btree {
 }
 
 func (t *Btree) run() {
-	tick := time.Tick(time.Second * 10)
+	tick := time.Tick(time.Second * 2)
 	for {
 		select {
 		case <-t.exitChan:
