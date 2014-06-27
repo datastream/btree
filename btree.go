@@ -31,20 +31,7 @@ const (
 
 // NewBtree create a btree
 func NewBtree() *Btree {
-	tree := &Btree{
-		dupnodelist: make(map[int64]int),
-		opChan:      make(chan *treeOperation),
-		BtreeMetadata: BtreeMetadata{
-			Root:        proto.Int64(0),
-			Size:        proto.Int64(TreeSize),
-			LeafMax:     proto.Int64(LeafSize),
-			NodeMax:     proto.Int64(NodeSize),
-			IndexCursor: proto.Int64(0),
-			Nodes:       make([][]byte, TreeSize),
-		},
-	}
-	go tree.run()
-	return tree
+	return NewBtreeSize(LeafSize, NodeSize)
 }
 
 // NewBtreeSize create new btree with custom leafsize/nodesize
