@@ -9,7 +9,10 @@ import (
 // Insert can insert record into a btree
 func (t *Btree) insert(record TreeLog) error {
 	tnode, err := t.getTreeNode(t.GetRoot())
-	if err != nil && err.Error() == "no data" {
+	if err != nil {
+		if err.Error() != "no data" {
+			return err
+		}
 		nnode := t.newTreeNode()
 		nnode.NodeType = proto.Int32(isLeaf)
 		_, err = nnode.insertRecord(record, t)
@@ -19,23 +22,18 @@ func (t *Btree) insert(record TreeLog) error {
 		t.Root = proto.Int64(nnode.GetId())
 		return err
 	}
-	if err != nil {
-		return err
+	clonednode, err := tnode.insertRecord(record, t)
+	if err == nil && len(clonednode.GetKeys()) > int(t.GetNodeMax()) {
+		nnode := t.newTreeNode()
+		nnode.NodeType = proto.Int32(isNode)
+		key, left, right := clonednode.split(t)
+		nnode.insertOnce(key, left, right, t)
+		t.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
+		t.Root = proto.Int64(nnode.GetId())
 	} else {
-		clonednode, err := tnode.insertRecord(record, t)
-		if err == nil && len(clonednode.GetKeys()) > int(t.GetNodeMax()) {
-			nnode := t.newTreeNode()
-			nnode.NodeType = proto.Int32(isNode)
-			key, left, right := clonednode.split(t)
-			nnode.insertOnce(key, left, right, t)
-			t.Nodes[nnode.GetId()], err = proto.Marshal(nnode)
-			t.Root = proto.Int64(nnode.GetId())
-		} else {
-			t.Root = proto.Int64(clonednode.GetId())
-		}
-		return err
+		t.Root = proto.Int64(clonednode.GetId())
 	}
-	return fmt.Errorf("bad insert")
+	return err
 }
 
 // insert node
